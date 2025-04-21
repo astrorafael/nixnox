@@ -1,0 +1,68 @@
+[project]
+name = "nixnox"
+dynamic = ["version"]
+description = "NIXNOX Python library"
+readme = "README.md"
+requires-python = ">=3.12"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Rafael González", email = "rafael08@ucm.es"},
+    {name = "Jaime Zamorano", email ="jzamoran@ucm.es"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+dependencies = [
+  "python-decouple >= 3.8",  # Get info from enviromental variables
+  "typing-extensions >= 4.12", # Self for Python < 3.11
+  # Async Database stuff
+  "SQLAlchemy>=2.0",
+  "alembic >= 1.15",
+  "lica>=1.1",
+]
+
+[project.urls]
+Homepage = "(https://guaix.fis.ucm.es/reecl/nixnox"
+Repository = "https://github.com/STARS4ALL/nixnox.git"
+
+[project.scripts]
+# These are Database related commands
+nx-db-schema = "nixnox.cli.dbase.schema:main"
+nx-db-populate = "nixnox.cli.dbase.populate:main"
+
+
+[build-system]
+requires = ["setuptools >= 78.1", "wheel", "setuptools_scm[toml]>=8.2"]
+build-backend = "setuptools.build_meta"
+
+# pyproject.toml
+# Automatically generates a _version-py file from with Git information
+# This file shold be placed in .gitignore
+[tool.setuptools_scm]
+write_to = "src/nixnox/_version.py"
+
+[tool.setuptools.packages.find]
+# scanning for namespace packages is true by default in pyproject.toml, so
+# you do NOT need to include the following line.
+namespaces = true
+where = ["src"]
+
+[tool.setuptools]
+script-files = [
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "mypy>=1.15.0",
+]
