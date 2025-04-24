@@ -87,6 +87,12 @@ anew verbose="":
 # QUCK COMMAND LINE TESTING #
 # ========================= #
 
+load-ecsv:
+    #!/usr/bin/env bash   
+    set -exuo pipefail
+    uv run nx-db-load --console --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
+    uv run nx-db-load --console --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv
+
 
 # =======================================================================
 

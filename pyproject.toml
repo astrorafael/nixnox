@@ -26,6 +26,7 @@ dependencies = [
   "SQLAlchemy>=2.0",
   "alembic >= 1.15",
   "lica>=1.1",
+  "astropy>=7.0",
 ]
 
 [project.urls]

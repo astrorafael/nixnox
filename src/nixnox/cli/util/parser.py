@@ -73,9 +73,9 @@ def ifiles() -> ArgumentParser:
         "--input-file",
         type=vecsvfile,
         required=True,
-        nargs="+",
+        nargs="+", # Allows spaces in file name
         metavar="<File>",
-        help="ECSV input files",
+        help="ECSV input file",
     )
     parser.add_argument(
         "-d",

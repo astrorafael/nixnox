@@ -9,12 +9,14 @@
 # -------------------
 
 import logging
-from datetime import datetime, timedelta
+import hashlib
 from argparse import ArgumentParser, Namespace
 
 # -------------------
 # Third party imports
 # -------------------
+
+import astropy.io.ascii
 
 from lica.sqlalchemy import sqa_logging
 from lica.sqlalchemy.dbase import Session
@@ -52,10 +54,17 @@ log = logging.getLogger(__name__.split(".")[-1])
 # -------------
 
 
-
 def cli_load_obs(session: Session, args: Namespace) -> None:
-   pass
-
+    path = " ".join(args.input_file)
+    log.info("Loading file %s", path)
+    with open(path, "rb") as fd:
+        contents = fd.read()
+        digest = hashlib.md5(contents).hexdigest()
+        fd.seek(0,0) # Rewind to conver it to AstroPy Table
+        table = astropy.io.ascii.read(fd, format="ecsv")
+    log.info("Digest is %s", digest)
+    log.info(table)
+    
 
 def add_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
@@ -63,7 +72,6 @@ def add_args(parser: ArgumentParser) -> None:
         "observation", parents=[prs.ifiles()], help="Load one or more ECSV observation files"
     )
     p.set_defaults(func=cli_load_obs)
-    
 
 
 def cli_main(args: Namespace) -> None:
