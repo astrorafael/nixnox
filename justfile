@@ -111,8 +111,8 @@ env-backup bak_dir:
     fi
     mkdir -p {{ bak_dir }}
     cp {{ local_env }} {{ bak_dir }}
-    cp zptess.prod.db {{ bak_dir }}
-    cp zptess.db {{ bak_dir }}
+    cp nixnox.db {{ bak_dir }}
+    cp *.ecsv {{ bak_dir }}
   
 [private]
 env-restore bak_dir:
@@ -123,5 +123,5 @@ env-restore bak_dir:
         exit 1 
     fi
     cp {{ bak_dir }}/.env {{ local_env }}
-    cp {{ bak_dir }}/zptess.prod.db .
-    cp {{ bak_dir }}/zptess.db .
+    cp {{ bak_dir }}/nixnox.db .
+    cp {{ bak_dir }}/*.ecsv .

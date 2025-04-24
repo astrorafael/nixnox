@@ -17,12 +17,15 @@ from argparse import ArgumentParser
 
 from lica.validators import vdate
 
-START_DATE = datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-END_DATE = datetime(year=2050, month=12, day=31, hour=23, minute=59, second=59, microsecond=99999)
-
 # --------------
 # local imports
 # -------------
+
+from .validators import vecsvfile
+
+
+START_DATE = datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+END_DATE = datetime(year=2050, month=12, day=31, hour=23, minute=59, second=59, microsecond=99999)
 
 
 def since() -> ArgumentParser:
@@ -60,5 +63,25 @@ def seconds() -> ArgumentParser:
         choices=[i for i in range(1,61)],
         default=1,
         help="Default seconds resolution (default %(default)s)",
+    )
+    return parser
+
+def ifiles() -> ArgumentParser:
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument(
+        "-i",
+        "--input-file",
+        type=vecsvfile,
+        required=True,
+        nargs="+",
+        metavar="<File>",
+        help="ECSV input files",
+    )
+    parser.add_argument(
+        "-d",
+        "--delimiter",
+        type=str,
+        default=",",
+        help="CSV column delimiter. (defaults to %(default)s)",
     )
     return parser

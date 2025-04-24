@@ -11,9 +11,10 @@ wheels/
 
 # My own stuff
 .env
-src/zptess/_version.py
+_version.py
 *.db
 *.csv
+*.ecsv
 *.bak
 *.log
 test*.py
