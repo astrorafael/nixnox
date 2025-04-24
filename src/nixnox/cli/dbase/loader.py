@@ -63,7 +63,8 @@ def cli_load_obs(session: Session, args: Namespace) -> None:
         fd.seek(0,0) # Rewind to conver it to AstroPy Table
         table = astropy.io.ascii.read(fd, format="ecsv")
     log.info("Digest is %s", digest)
-    log.info(table)
+    for row in table:
+        log.info(row.keys())
     
 
 def add_args(parser: ArgumentParser) -> None:
