@@ -262,10 +262,10 @@ class Photometer(Model):
     )
 
 
-class ObservationSet(Model):
-    __tablename__ = "observation_set_t"
+class Observation(Model):
+    __tablename__ = "observation_t"
 
-    obs_set_id: Mapped[int] = mapped_column(primary_key=True)
+    obs_id: Mapped[int] = mapped_column(primary_key=True)
     # MD5 File digest to avoid duplicates
     digest: Mapped[str] = mapped_column(String(64), unique=True)
     # Temperature in Celsius, see flags for meaning
@@ -286,16 +286,16 @@ class ObservationSet(Model):
     image_url: Mapped[Optional[str]] = mapped_column(String(255))
 
 
-class Observation(Model):
-    __tablename__ = "observation_t"
+class Measurement(Model):
+    __tablename__ = "measurement_t"
 
-    obs_id: Mapped[int] = mapped_column(primary_key=True)
+    meas_id: Mapped[int] = mapped_column(primary_key=True)
     date_id: Mapped[int] = mapped_column(ForeignKey("date_t.date_id"))
     time_id: Mapped[int] = mapped_column(ForeignKey("time_t.time_id"))
     observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"))
     location_id: Mapped[int] = mapped_column(ForeignKey("location_t.location_id"))
     phot_id: Mapped[int] = mapped_column(ForeignKey("photometer_t.phot_id"))
-    obs_set_id: Mapped[int] = mapped_column(ForeignKey("observation_set_t.obs_set_id"))
+    obs_id: Mapped[int] = mapped_column(ForeignKey("observation_t.obs_id"))
     flags_id: Mapped[int] = mapped_column(ForeignKey("flags_t.flags_id"))
     # Azimuth in decimal degrees
     azimuth: Mapped[float]
