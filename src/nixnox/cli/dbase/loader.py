@@ -60,7 +60,7 @@ def cli_load_obs(session: Session, args: Namespace) -> None:
     with open(path, "rb") as fd:
         contents = fd.read()
         digest = hashlib.md5(contents).hexdigest()
-        fd.seek(0,0) # Rewind to conver it to AstroPy Table
+        fd.seek(0) # Rewind to conver it to AstroPy Table
         table = astropy.io.ascii.read(fd, format="ecsv")
     log.info("Digest is %s", digest)
     for row in table:
