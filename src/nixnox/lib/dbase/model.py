@@ -280,6 +280,8 @@ class Observation(Model):
     __tablename__ = "observation_t"
 
     obs_id: Mapped[int] = mapped_column(primary_key=True)
+    # Original filename, without path
+    filename: Mapped[str] = mapped_column(String(128))
     # MD5 File digest to avoid duplicates
     digest: Mapped[str] = mapped_column(String(64), unique=True)
     # Temperature in Celsius, see flags for meaning
@@ -311,6 +313,8 @@ class Measurement(Model):
     phot_id: Mapped[int] = mapped_column(ForeignKey("photometer_t.phot_id"))
     obs_id: Mapped[int] = mapped_column(ForeignKey("observation_t.obs_id"))
     flags_id: Mapped[int] = mapped_column(ForeignKey("flags_t.flags_id"))
+    # Sequence number within the batch, TAS only
+    sequence: Mapped[Optional[int]]
     # Azimuth in decimal degrees
     azimuth: Mapped[float]
     # Altitude in decimal degrees
@@ -321,15 +325,23 @@ class Measurement(Model):
     magnitude: Mapped[float]
     # Photometer frequeincy in Hz, TAS only
     frequency: Mapped[Optional[float]]
-    # Infrarred temnperature in Celsious, TAS only
+    # Sensor temnperature in Celsius, TAS only
+    sensor_temp: Mapped[Optional[float]]
+    # Infrarred temnperature in Celsius, TAS only
     sky_temp: Mapped[Optional[float]]
     # Battery voltage, TAS only
-    vbat: Mapped[Optional[float]]
+    bat_volt: Mapped[Optional[float]]
 
-    # These are relationshipo attributes
+    # These are relationship attributes
     # These are not real columns, part of the ORM magic
+    # Usend in insertiuons of new measurements
     location: Mapped["Location"] = relationship()
     observer: Mapped["Observer"] = relationship()
     photometer: Mapped["Photometer"] = relationship()
     observation: Mapped["Observation"] = relationship()
     flags: Mapped["Flags"] = relationship()
+
+    table_args__ = (
+        UniqueConstraint(date_id, time_id, observer_id, location_id, phot_id, obs_id, flags_id),
+        {},
+    )

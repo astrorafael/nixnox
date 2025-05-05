@@ -37,7 +37,15 @@ from ... import __version__
 from ..util import parser as prs
 from ...lib import ObserverType, PhotometerModel, Temperature, Humidity, Timestamp, ValidState
 from ...lib.location import geolocate
-from ...lib.dbase.model import Date, Time, Flags, Photometer, Observer, Observation, Location
+from ...lib.dbase.model import (
+    Flags,
+    Photometer,
+    Observer,
+    Observation,
+    Location,
+    Measurement,
+)
+
 # ----------------
 # Module constants
 # ----------------
@@ -58,11 +66,12 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 
 def get_observation(session: Session, table: Table, digest: str) -> Optional[Observation]:
+    filename = table.meta["keywords"]["measurements_file"]
     q = select(Observation).where(Observation.digest == digest)
-    observation = session.scalars(q).one_or_none() or Observation(
+    return session.scalars(q).one_or_none() or Observation(
+        filename=filename,
         digest=digest,
     )
-    return observation
 
 
 def get_observer(session: Session, table: Table) -> Optional[Observer]:
@@ -70,7 +79,7 @@ def get_observer(session: Session, table: Table) -> Optional[Observer]:
     affiliation = table.meta["keywords"].get("association")
     obs_type = ObserverType.PERSON
     q = select(Observer).where(Observer.type == obs_type, Observer.name == name)
-    observer = session.scalars(q).one_or_none() or Observer(
+    return session.scalars(q).one_or_none() or Observer(
         type=ObserverType.PERSON,
         name=table.meta["keywords"]["author"],
         affiliation=affiliation,
@@ -78,7 +87,6 @@ def get_observer(session: Session, table: Table) -> Optional[Observer]:
         valid_until=datetime(year=2999, month=12, day=31),
         valid_state=ValidState.CURRENT,
     )
-    return observer
 
 
 def get_location(session: Session, table: Table) -> Optional[Location]:
@@ -86,27 +94,26 @@ def get_location(session: Session, table: Table) -> Optional[Location]:
     latitude = float(table.meta["keywords"]["latitude"])
     q = select(Location).where(Location.longitude == longitude, Location.latitude == latitude)
     location = session.scalars(q).one_or_none()
-    if location is not None:
-        return location
-    result = geolocate(
-        longitude=longitude,
-        latitude=latitude,
-    )
-    result["town"] = result["town"] or "Unknown"
-    result["sub_region"] = result["sub_region"] or "Unknown"
-    result["region"] = result["region"] or "Unknown"
-    result["country"] = result["country"] or "Unknown"
-    location = Location(
-        place=table.meta["keywords"]["place"],
-        longitude=result["longitude"],
-        latitude=result["latitude"],
-        masl=float(table.meta["keywords"]["height"]),
-        town=result["town"],
-        sub_region=result["sub_region"],
-        region=result["region"],
-        country=result["country"],
-        timezone=result["timezone"],
-    )
+    if location is None:
+        result = geolocate(
+            longitude=longitude,
+            latitude=latitude,
+        )
+        result["town"] = result["town"] or "Unknown"
+        result["sub_region"] = result["sub_region"] or "Unknown"
+        result["region"] = result["region"] or "Unknown"
+        result["country"] = result["country"] or "Unknown"
+        location = Location(
+            place=table.meta["keywords"]["place"],
+            longitude=result["longitude"],
+            latitude=result["latitude"],
+            masl=float(table.meta["keywords"]["height"]),
+            town=result["town"],
+            sub_region=result["sub_region"],
+            region=result["region"],
+            country=result["country"],
+            timezone=result["timezone"],
+        )
     return location
 
 
@@ -116,21 +123,23 @@ def get_photometer(session: Session, table: Table) -> Optional[Photometer]:
     comments = table.meta["keywords"]["comments"].split()
     zero_point = float(comments[2].split(":")[-1])
     q = select(Photometer).where(Photometer.name == name, Photometer.model == model)
-    photometer = session.scalars(q).one_or_none() or Photometer(
+    return session.scalars(q).one_or_none() or Photometer(
         model=model,
         name=name,
         identifier=name,  # THIS SHOULD BE A MAC ADDRESS BUT WE DON?T HAVE IT !!
         zero_point=zero_point,
         fov=17.0,
     )
-    return photometer
 
 
-def get_flags(session: Session) -> Flags:
+def get_flags(session: Session, table: Table) -> Flags:
+    name = table.meta["keywords"]["photometer"]
+    temperature = Temperature.UNIQUE if name.startswith("TAS") else Temperature.UNKNOWN
+    timestamp = Timestamp.UNIQUE if name.startswith("TAS") else Timestamp.INITIAL
     q = select(Flags).where(
-        Flags.temperature_meas == Temperature.UNKNOWN,
+        Flags.temperature_meas == temperature,  # unique Sensor temperature in TAS
         Flags.humidity_meas == Humidity.UNKNOWN,
-        Flags.timestamp_meas == Timestamp.UNIQUE,
+        Flags.timestamp_meas == timestamp,
     )
     return session.scalars(q).one()
 
@@ -151,17 +160,38 @@ def cli_load_obs(session: Session, args: Namespace) -> None:
     log.info("Digest is %s", digest)
     with session.begin():
         observation = get_observation(session, table, digest)
-        log.info("Observation is %s", observation)
-        flags = get_flags(session)
-        log.info("Flags is %s", flags)
+        flags = get_flags(session, table)
         photometer = get_photometer(session, table)
         location = get_location(session, table)
         observer = get_observer(session, table)
         for item in (photometer, location, observer, observation, flags):
-            try:
-                session.add(item)
-            except Exception as e:
-                log.excp(e)
+            session.add(item)
+        for row in table:
+            tstamp = datetime.strptime(row["UT_Datetime"], "%Y-%m-%d %H:%M:%S")
+            measurement = Measurement(
+                date_id=int(tstamp.strftime("%Y%m%d")),
+                time_id=int(tstamp.strftime("%H%M%S")),
+                photometer=photometer,
+                observer=observer,
+                location=location,
+                observation=observation,
+                flags=flags,
+                sequence=int(row["ind"]),
+                azimuth=row["Azi"],
+                altitude=row["Alt"],
+                zenital=90.0 - row["Alt"],
+                magnitude=row["Mag"],
+                frequency=row["Hz"],
+                sky_temp=row["Temp_IR"],
+                sensor_temp=row["T_sens"],
+            )
+            session.add(measurement)
+        try:
+            session.commit()
+        except Exception:
+            log.error("(%s) Trying to reload the same observation file?", path)
+    
+           
 
 
 def add_args(parser: ArgumentParser) -> None:
