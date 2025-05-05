@@ -27,6 +27,9 @@ dependencies = [
   "alembic >= 1.15",
   "lica>=1.1",
   "astropy>=7.0",
+  # Automatic location
+  "geopy>=2.4.1",
+  "timezonefinder>=6.5.9",
 ]
 
 [project.urls]

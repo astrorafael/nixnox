@@ -200,6 +200,9 @@ class Observer(Model):
 
     __table_args__ = (UniqueConstraint(name, valid_since, valid_until), {})
 
+    def __repr__(self) -> str:
+        return f"Flags(type={self.type!s}, name={self.name!s}, affiliation={self.affiliation!s})"
+
 
 class Location(Model):
     __tablename__ = "location_t"
@@ -210,7 +213,7 @@ class Location(Model):
     # Geographical in decimal degrees
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     # Meters above sea level
-    msl: Mapped[Optional[float]]
+    masl: Mapped[Optional[float]]
     # Descriptive name of this unitque location
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     # village, town, city, etc name
@@ -224,6 +227,11 @@ class Location(Model):
 
     __table_args__ = (UniqueConstraint(longitude, latitude), {})
 
+    def __repr__(self) -> str:
+        return (
+            f"Flags(longitude={self.longitude!s}, latitude={self.latitude!s}, place={self.place!s})"
+        )
+
 
 class Flags(Model):
     __tablename__ = "flags_t"
@@ -235,6 +243,9 @@ class Flags(Model):
     humidity_meas: Mapped[HumidityType] = mapped_column(HumidityType, nullable=False)
     # Tiemstamp measurement type
     timestamp_meas: Mapped[TimestampType] = mapped_column(TimestampType, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"Flags(temperature_meas={self.temperature_meas!s}, humidity_meas={self.humidity_meas!s}, timestamp_meas={self.timestamp_meas!s})"
 
 
 class Photometer(Model):
@@ -260,6 +271,9 @@ class Photometer(Model):
         UniqueConstraint(name, identifier),
         {},
     )
+
+    def __repr__(self) -> str:
+        return f"Flags(phot_id={self.phot_id!s}, model={self.model!s}, name={self.name!s})"
 
 
 class Observation(Model):
@@ -311,3 +325,11 @@ class Measurement(Model):
     sky_temp: Mapped[Optional[float]]
     # Battery voltage, TAS only
     vbat: Mapped[Optional[float]]
+
+    # These are relationshipo attributes
+    # These are not real columns, part of the ORM magic
+    location: Mapped["Location"] = relationship()
+    observer: Mapped["Observer"] = relationship()
+    photometer: Mapped["Photometer"] = relationship()
+    observation: Mapped["Observation"] = relationship()
+    flags: Mapped["Flags"] = relationship()

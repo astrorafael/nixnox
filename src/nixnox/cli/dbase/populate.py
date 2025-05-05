@@ -144,7 +144,7 @@ def cli_populate_location(session: Session, args: Namespace) -> None:
         location_id=-1,
         longitude=0.0,
         latitude=0.0,
-        msl=0.0,
+        masl=0.0,
         place="Unknown",
         town="Unknown",
         sub_region="Unknown",
