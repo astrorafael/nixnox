@@ -301,6 +301,11 @@ class Observation(Model):
     # Site image URL
     image_url: Mapped[Optional[str]] = mapped_column(String(255))
 
+    # These are relationship attributes
+    # These are not real columns, part of the ORM magic
+    # Usend in insertions of new measurements
+    measurements: Mapped[List["Measurement"]] = relationship(back_populates="observation")
+
 
 class Measurement(Model):
     __tablename__ = "measurement_t"
@@ -334,11 +339,11 @@ class Measurement(Model):
 
     # These are relationship attributes
     # These are not real columns, part of the ORM magic
-    # Usend in insertiuons of new measurements
+    # Usend in insertions of new measurements
     location: Mapped["Location"] = relationship()
     observer: Mapped["Observer"] = relationship()
     photometer: Mapped["Photometer"] = relationship()
-    observation: Mapped["Observation"] = relationship()
+    observation: Mapped["Observation"] = relationship(back_populates="measurements")
     flags: Mapped["Flags"] = relationship()
 
     table_args__ = (

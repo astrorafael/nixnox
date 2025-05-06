@@ -40,7 +40,8 @@ Repository = "https://github.com/STARS4ALL/nixnox.git"
 # These are Database related commands
 nx-db-schema = "nixnox.cli.dbase.schema:main"
 nx-db-populate = "nixnox.cli.dbase.populate:main"
-nx-db-load = "nixnox.cli.dbase.loader:main"
+nx-db-import = "nixnox.cli.dbase.ecsv:importa"
+nx-db-export = "nixnox.cli.dbase.ecsv:export"
 
 
 [build-system]

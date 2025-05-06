@@ -149,7 +149,7 @@ def get_flags(session: Session, table: Table) -> Flags:
 # -------------
 
 
-def cli_load_obs(session: Session, args: Namespace) -> None:
+def cli_import_obs(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as fd:
@@ -188,36 +188,55 @@ def cli_load_obs(session: Session, args: Namespace) -> None:
             session.add(measurement)
         try:
             session.commit()
-        except Exception:
+        except Exception as e:
+            log.error(e)
             log.error("(%s) Trying to reload the same observation file?", path)
     
            
 
 
-def add_args(parser: ArgumentParser) -> None:
+def add_import_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
     p = subparser.add_parser(
-        "observation", parents=[prs.ifiles()], help="Load one or more ECSV observation files"
+        "observation", parents=[prs.ifiles()], help="Import to database one ECSV observation file "
     )
-    p.set_defaults(func=cli_load_obs)
+    p.set_defaults(func=cli_import_obs)
+
+def add_export_args(parser: ArgumentParser) -> None:
+    subparser = parser.add_subparsers(dest="command", required=True)
+    p = subparser.add_parser(
+        "observation", parents=[], help="Export from database one ECSV observation file"
+    )
+    p.set_defaults(func=cli_import_obs)
 
 
-def cli_main(args: Namespace) -> None:
+def cli_import(args: Namespace) -> None:
+    sqa_logging(args)
+    with Session() as session:
+        args.func(session, args)
+
+def cli_export(args: Namespace) -> None:
     sqa_logging(args)
     with Session() as session:
         args.func(session, args)
 
 
-def main():
-    """The main entry point specified by pyproject.toml"""
+def importa():
+    """main entry point specified by pyproject.toml"""
     execute(
-        main_func=cli_main,
-        add_args_func=add_args,
+        main_func=cli_import,
+        add_args_func=add_import_args,
         name=__name__,
         version=__version__,
         description=DESCRIPTION,
     )
 
-
-if __name__ == "__main__":
-    main()
+def export():
+    """main entry point specified by pyproject.toml"""
+    execute(
+        main_func=cli_export,
+        add_args_func=add_export_args,
+        name=__name__,
+        version=__version__,
+        description=DESCRIPTION,
+    )
