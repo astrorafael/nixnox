@@ -9,17 +9,12 @@
 # -------------------
 
 import logging
-import hashlib
 from argparse import ArgumentParser, Namespace
 
-from datetime import datetime
-from typing import Optional
 
 # -------------------
 # Third party imports
 # -------------------
-
-import astropy.io.ascii
 
 from lica.sqlalchemy import sqa_logging
 from lica.sqlalchemy.dbase import Session
@@ -33,8 +28,8 @@ from ... import __version__
 from ..util import parser as prs
 
 from ...lib.table import (
-    create_measurements,
-    get_measurements,
+    create_full_observation,
+    get_full_observation,
 )
 
 # ----------------
@@ -63,14 +58,16 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 def cli_export_ecsv(session: Session, args: Namespace) -> None:
     identifier = " ".join(args.identifier)
-    get_measurements(session, identifier)
+    table = get_full_observation(session, identifier)
+    path = "exported_" + identifier + '.ecsv'
+    table.write(path, delimiter=args.delimiter, overwrite=True)
 
 
 def cli_import_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
-    file_obj = open(path, "rb")
-    create_measurements(session, file_obj)
+    with open(path, "rb") as file_obj:
+        create_full_observation(session, file_obj)
 
 
 def add_import_args(parser: ArgumentParser) -> None:

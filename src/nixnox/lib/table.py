@@ -20,11 +20,13 @@ from typing import Optional, BinaryIO
 # -------------------
 
 import pytz
+
 from sqlalchemy import select
-import astropy.io.ascii
-from astropy.table import Table
 from lica.sqlalchemy.dbase import Session
 
+import astropy.io.ascii
+from astropy.table import Table
+from astropy import units as u
 
 # --------------
 # local imports
@@ -61,7 +63,7 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 def utc_t(m: Measurement) -> datetime:
     utc = str(m.date_id) + " " + m.time.time
-    return datetime.strptime(utc, "%Y%m%d %H:%M:%S").replace(tzinfo=pytz.utc)
+    return datetime.strptime(utc, "%Y%m%d %H:%M:%S").replace(tzinfo=timezone.utc)
 
 
 def local_t(m: Measurement, timezone: str) -> datetime:
@@ -78,7 +80,8 @@ def get_observation_by_digest(session: Session, table: Table, digest: str) -> Op
     )
 
 
-def get_measurements(session: Session, identifier: str) -> Optional[Table]:
+def get_full_observation(session: Session, identifier: str) -> Optional[Table]:
+    table = None
     q = select(Observation).where(Observation.identifier == identifier)
     observation = session.scalars(q).one_or_none()
     if observation:
@@ -90,27 +93,48 @@ def get_measurements(session: Session, identifier: str) -> Optional[Table]:
         data_rows = [
             (
                 m.sequence,
-                local_t(m, location.timezone),
-                utc_t(m),
-                m.sky_temp,
-                m.sensor_temp,
+                local_t(m, location.timezone).isoformat(),
+                utc_t(m).isoformat(),
+                m.sky_temp * u.deg_C if m.sky_temp else None,
+                m.sensor_temp * u.deg_C if m.sensor_temp else None,
                 m.magnitude,
-                m.frequency,
-                m.altitude,
-                m.azimuth,
-                location.latitude,
-                location.longitude,
-                location.masl,
-                m.bat_volt,
+                m.frequency * u.Hz if m.frequency else None,
+                m.altitude * u.deg,
+                m.azimuth * u.deg,
+                location.latitude * u.deg if location.latitude else None,
+                location.longitude * u.deg if location.longitude else None,
+                location.masl * u.m if location.masl else None,
+                m.bat_volt * u.V if m.bat_volt else None,
             )
             for m in measurements
         ]
-        header = ("ind","Datetime","UT_Datetime","Temp_IR","T_sens","Mag","Hz","Alt","Azi","Lat","Long","SL","VBat")
+        header = (
+            "ind",
+            "Datetime",
+            "UT_Datetime",
+            "Temp_IR",
+            "T_sens",
+            "Mag",
+            "Hz",
+            "Alt",
+            "Azi",
+            "Lat",
+            "Long",
+            "SL",
+            "VBat",
+        )
         table = Table(rows=data_rows, names=header)
-        log.info(table)
-
+        table.meta["Observer"] = observer.to_table()
+        table.meta["Location"] = location.to_table()
+        table.meta["Photometer"] = photometer.to_table()
+        table.meta["Observation"] = observation.to_table()
+        table.meta["Flags"] = flags.to_table()
+        return table
+        path = "exported_" + identifier + ".ecsv"
+        table.write(path, delimiter=",", overwrite=True)
     else:
         log.warn("No observation found with identifier %s", identifier)
+    return table
 
 
 def get_observer(session: Session, table: Table) -> Optional[Observer]:
@@ -123,7 +147,7 @@ def get_observer(session: Session, table: Table) -> Optional[Observer]:
         name=table.meta["keywords"]["author"],
         affiliation=affiliation,
         valid_since=datetime.now(timezone.utc).replace(microsecond=0),
-        valid_until=datetime(year=2999, month=12, day=31),
+        valid_until=datetime(year=2999, month=12, day=31, tzinfo=timezone.utc),
         valid_state=ValidState.CURRENT,
     )
 
@@ -183,12 +207,11 @@ def get_flags(session: Session, table: Table) -> Flags:
     return session.scalars(q).one()
 
 
-def create_measurements(session: Session, file_obj: BinaryIO) -> None:
-    with file_obj:
-        contents = file_obj.read()
-        digest = hashlib.md5(contents).hexdigest()
-        file_obj.seek(0)  # Rewind to conver it to AstroPy Table
-        table = astropy.io.ascii.read(file_obj, format="ecsv")
+def create_full_observation(session: Session, file_obj: BinaryIO) -> None:
+    contents = file_obj.read()
+    digest = hashlib.md5(contents).hexdigest()
+    file_obj.seek(0)  # Rewind to conver it to AstroPy Table
+    table = astropy.io.ascii.read(file_obj, format="ecsv")
     log.info("Digest is %s", digest)
     with session.begin():
         observation = get_observation_by_digest(session, table, digest)

@@ -21,16 +21,16 @@ class MyEnum(Enum):
     #     return self.value
 
 class Temperature(MyEnum):
-    UNKNOWN = "No temperatures known"
+    UNKNOWN = "No temperature"
     INITIAL_FINAL = "Initial & Final temperatures"
     MIN_MAX = "Min & Max temperatures"
-    UNIQUE = "Unique temperature measurement"
+    UNIQUE = "Individual temperature measurement"
 
 class Humidity(MyEnum):
-    UNKNOWN = "No humidity known"
+    UNKNOWN = "No humidity"
     INITIAL_FINAL = "Initial & Final humidities"
     MIN_MAX ="Max & Min humidities"
-    UNIQUE = "Unique humidity measurement"
+    UNIQUE = "Individual humidity measurement"
 
 class Timestamp(MyEnum):
     INITIAl_FINAL = "Start & end timestamp"

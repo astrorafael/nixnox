@@ -201,7 +201,26 @@ class Observer(Model):
     __table_args__ = (UniqueConstraint(name, valid_since, valid_until), {})
 
     def __repr__(self) -> str:
-        return f"Flags(type={self.type!s}, name={self.name!s}, affiliation={self.affiliation!s})"
+        return (
+            f"dict(type={self.type!s}, name={self.name}, nickname={self.nickname}, affiliation={self.affiliation}, "
+            f"acronym={self.acronym}, website_url={self.website_url}, email={self.email}, "
+            f"valid_since={self.valid_since!s}, valid_until={self.valid_until!s}, valid_state={self.valid_state!s})"
+        )
+
+    def to_table(self) -> dict:
+        """To be written as Astropy's table metadata"""
+        return dict(
+            type=self.type.value,
+            name=self.name,
+            nickname=self.nickname,
+            affiliation=self.affiliation,
+            acronym=self.acronym,
+            website_url=self.website_url,
+            email=self.email,
+            valid_since=self.valid_since.isoformat(),
+            valid_until=self.valid_until.isoformat(),
+            valid_state=self.valid_state.value,
+        )
 
 
 class Location(Model):
@@ -229,7 +248,23 @@ class Location(Model):
 
     def __repr__(self) -> str:
         return (
-            f"Flags(longitude={self.longitude!s}, latitude={self.latitude!s}, place={self.place!s})"
+            f"Location(longitude={self.longitude!s}, latitude={self.latitude!s}, masl={self.masl!s}, "
+            f"place={self.place}, town={self.town}, sub_region={self.sub_region}, region={self.region}, country={self.country}, "
+            f"timezone={self.timezone})"
+        )
+
+    def to_table(self) -> dict:
+        """To be written as Astropy's table metadata"""
+        return dict(
+            longitude=self.longitude,
+            latitude=self.latitude,
+            masl=self.masl,
+            place=self.place,
+            town=self.town,
+            sub_region=self.sub_region,
+            region=self.region,
+            country=self.country,
+            timezone=self.timezone,
         )
 
 
@@ -246,6 +281,13 @@ class Flags(Model):
 
     def __repr__(self) -> str:
         return f"Flags(temperature_meas={self.temperature_meas!s}, humidity_meas={self.humidity_meas!s}, timestamp_meas={self.timestamp_meas!s})"
+
+    def to_table(self) -> dict:
+        return dict(
+            temperature_meas=self.temperature_meas.value,
+            humidity_meas=self.humidity_meas.value,
+            timestamp_meas=self.timestamp_meas.value,
+        )
 
 
 class Photometer(Model):
@@ -273,7 +315,21 @@ class Photometer(Model):
     )
 
     def __repr__(self) -> str:
-        return f"Flags(phot_id={self.phot_id!s}, model={self.model!s}, name={self.name!s})"
+        return (
+            f"Photometer(model={self.model!s}, name={self.name}, identifier={self.identifier}, sensor={self.sensor!s}, "
+            f"fov={self.fov!s}, zero_point={self.zero_point!s}, comment={self.comment})"
+        )
+
+    def to_table(self) -> dict:
+        return dict(
+            model=self.model.value,
+            name=self.name,
+            identifier=self.identifier,
+            sensor=self.sensor.value,
+            fov=self.fov,
+            zero_point=self.zero_point,
+            comment=self.comment,
+        )
 
 
 class Observation(Model):
@@ -304,6 +360,29 @@ class Observation(Model):
     # These are relationship attributes
     # These are not real columns, part of the ORM magic
     measurements: Mapped[List["Measurement"]] = relationship(back_populates="observation")
+
+    def __repr__(self) -> str:
+        return (
+            f"Observation(identifier={self.identifier!s}, digest={self.digest}, "
+            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, "
+            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, "
+            f"weather_conditions={self.weather_conditions}, image_url={self.image_url}, other_observers={self.other_observers}, "
+            f"comment={self.comment})"
+        )
+
+    def to_table(self) -> dict:
+        return dict(
+            identifier=self.identifier,
+            digest=self.digest,
+            temperature_1=self.temperature_1,
+            temperature_2=self.temperature_2,
+            humidity_1=self.humidity_1,
+            humidity_2=self.humidity_2,
+            weather_conditions=self.weather_conditions,
+            image_url=self.image_url,
+            other_observers=self.other_observers,
+            comment=self.comment,
+        )
 
 
 class Measurement(Model):
