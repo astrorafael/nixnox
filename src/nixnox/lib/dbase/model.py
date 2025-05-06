@@ -280,8 +280,8 @@ class Observation(Model):
     __tablename__ = "observation_t"
 
     obs_id: Mapped[int] = mapped_column(primary_key=True)
-    # Original filename, without path
-    filename: Mapped[str] = mapped_column(String(128))
+    # Identifier is the original filename, without path or extension
+    identifier: Mapped[str] = mapped_column(String(128))
     # MD5 File digest to avoid duplicates
     digest: Mapped[str] = mapped_column(String(64), unique=True)
     # Temperature in Celsius, see flags for meaning
@@ -303,7 +303,6 @@ class Observation(Model):
 
     # These are relationship attributes
     # These are not real columns, part of the ORM magic
-    # Usend in insertions of new measurements
     measurements: Mapped[List["Measurement"]] = relationship(back_populates="observation")
 
 
@@ -339,12 +338,14 @@ class Measurement(Model):
 
     # These are relationship attributes
     # These are not real columns, part of the ORM magic
-    # Usend in insertions of new measurements
+    # Used in insertions of new measurements
     location: Mapped["Location"] = relationship()
     observer: Mapped["Observer"] = relationship()
     photometer: Mapped["Photometer"] = relationship()
     observation: Mapped["Observation"] = relationship(back_populates="measurements")
     flags: Mapped["Flags"] = relationship()
+    date: Mapped["Date"] = relationship()
+    time: Mapped["Time"] = relationship()
 
     table_args__ = (
         UniqueConstraint(date_id, time_id, observer_id, location_id, phot_id, obs_id, flags_id),

@@ -29,6 +29,7 @@ dependencies = [
   "astropy>=7.0",
   # Automatic location
   "geopy>=2.4.1",
+  "pytz>=2025.02",
   "timezonefinder>=6.5.9",
 ]
 

@@ -66,7 +66,7 @@ def seconds() -> ArgumentParser:
     )
     return parser
 
-def ifiles() -> ArgumentParser:
+def ifile() -> ArgumentParser:
     parser = ArgumentParser(add_help=False)
     parser.add_argument(
         "-i",
@@ -76,6 +76,26 @@ def ifiles() -> ArgumentParser:
         nargs="+", # Allows spaces in file name
         metavar="<File>",
         help="ECSV input file",
+    )
+    parser.add_argument(
+        "-d",
+        "--delimiter",
+        type=str,
+        default=",",
+        help="CSV column delimiter. (defaults to %(default)s)",
+    )
+    return parser
+
+def ident() -> ArgumentParser:
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument(
+        "-i",
+        "--identifier",
+        type=str,
+        required=True,
+        nargs="+", # Allows spaces in file name
+        metavar="<Id>",
+        help="Observation identifier",
     )
     parser.add_argument(
         "-d",
