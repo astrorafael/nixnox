@@ -27,9 +27,10 @@ from lica.cli import execute
 from ... import __version__
 from ..util import parser as prs
 
-from ...lib.table import (
-    create_full_observation,
-    get_full_observation,
+from ...lib.ecsv import (
+    DatabaseLoader,
+    DatabaseLoaderV2,
+    TableBuilder,
 )
 
 # ----------------
@@ -58,22 +59,25 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 def cli_export_ecsv(session: Session, args: Namespace) -> None:
     identifier = " ".join(args.identifier)
-    table = get_full_observation(session, identifier)
-    path = "exported_" + identifier + '.ecsv'
-    table.write(path, delimiter=args.delimiter, overwrite=True)
+    builder = TableBuilder(session)
+    table = builder.build(identifier)
+    if table:
+        path = "EXPORTED_" + identifier + '.ecsv'
+        table.write(path, delimiter=args.delimiter, format="ascii.ecsv", overwrite=True)
 
 
 def cli_import_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        create_full_observation(session, file_obj)
+        loader = DatabaseLoaderV2(session) if args.new else DatabaseLoader(session)
+        loader.load(file_obj)
 
 
 def add_import_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
     p = subparser.add_parser(
-        "observation", parents=[prs.ifile()], help="Import to database one ECSV observation file "
+        "observation", parents=[prs.ifile(), prs.new()], help="Import to database one ECSV observation file "
     )
     p.set_defaults(func=cli_import_ecsv)
 

@@ -105,3 +105,13 @@ def ident() -> ArgumentParser:
         help="CSV column delimiter. (defaults to %(default)s)",
     )
     return parser
+
+def new() -> ArgumentParser:
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument(
+        "-n",
+        "--new",
+        action="store_true",
+        help="Load using new ECSV format",
+    )
+    return parser

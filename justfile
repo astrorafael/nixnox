@@ -93,10 +93,17 @@ load-ecsv:
     uv run nx-db-import --console --verbose --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
     uv run nx-db-import --console --verbose --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv
 
+load-ecsv2:
+    #!/usr/bin/env bash   
+    set -exuo pipefail
+    uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
+    uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASF46_AS_2024_10_05_042321_Yela.ecsv
+
 save-ecsv:
     #!/usr/bin/env bash   
     set -exuo pipefail
     uv run nx-db-export --console --verbose --trace observation --identifier TASD4B_AS_2024-10-23_224926_CASLEO
+    uv run nx-db-export --console --verbose --trace observation --identifier TASF46_AS_2024_10_05_042321_Yela
 
 # =======================================================================
 

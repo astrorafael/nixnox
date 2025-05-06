@@ -9,30 +9,25 @@
 # System wide imports
 # -------------------
 
-import sys
-import logging
 
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 # =====================
 # Third party libraries
 # =====================
 
+import pytz
+
 from sqlalchemy import (
-    select,
-    func,
     Enum,
-    Table,
-    Column,
-    Integer,
     Float,
     String,
     DateTime,
     ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship, aliased
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from lica.sqlalchemy.dbase import Model
 
@@ -47,13 +42,6 @@ from .. import ObserverType, ValidState, PhotometerModel, Temperature, Humidity,
 # =======================
 # Module global variables
 # =======================
-
-# get the module logger
-log = logging.getLogger(__name__)
-
-
-def datestr(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d %H:%M:%S.%f") if dt is not None else None
 
 
 # =================================
@@ -426,7 +414,16 @@ class Measurement(Model):
     date: Mapped["Date"] = relationship()
     time: Mapped["Time"] = relationship()
 
+    # The constraint is defined by the fact that a given photometer 
+    # can only be at one point in the space-time
     table_args__ = (
-        UniqueConstraint(date_id, time_id, observer_id, location_id, phot_id, obs_id, flags_id),
+        UniqueConstraint(date_id, time_id, location_id, phot_id),
         {},
     )
+
+    def utc_time(self) -> datetime:
+        utc = str(self.date_id) + " " + self.time.time
+        return datetime.strptime(utc, "%Y%m%d %H:%M:%S").replace(tzinfo=timezone.utc)
+
+    def local_time(self, timezone: str) -> datetime:
+        return self.utc_time().astimezone(pytz.timezone(timezone))
