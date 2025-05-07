@@ -28,8 +28,8 @@ from ... import __version__
 from ..util import parser as prs
 
 from ...lib.ecsv import (
-    DatabaseLoader,
-    DatabaseLoaderV2,
+    loader,
+    loader_v2,
     TableBuilder,
 )
 
@@ -70,8 +70,10 @@ def cli_import_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        loader = DatabaseLoaderV2(session) if args.new else DatabaseLoader(session)
-        loader.load(file_obj)
+        if args.new:
+            loader_v2(session, file_obj)
+        else:
+            loader(session, file_obj)
 
 
 def add_import_args(parser: ArgumentParser) -> None:

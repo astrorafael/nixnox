@@ -1,6 +1,5 @@
 # TODO
-* New GeoCoords enum {SINGLE, MEDIAN}. coords_meas column in Location
-* Fill temperature_1 with median(T_sensor)
+
 * Import --ammend to get bat_volt
 * Three types of export:
 	- Database mirror
@@ -9,5 +8,5 @@
 * Import:
 	- tailored to the Photometer type
 	- --ammend option to get bat_volt from .txt file
-	- Compute median of T_sensor -> temperature_1
+
 	

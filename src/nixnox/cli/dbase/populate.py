@@ -26,8 +26,8 @@ from lica.cli import execute
 
 from ... import __version__
 from ..util import parser as prs
-from ...lib import ObserverType, Temperature, Humidity, Timestamp, Coordinates, ValidState
-from ...lib.dbase.model import Date, Time, Flags, Observer, Location
+from ...lib import ObserverType, Coordinates, ValidState
+from ...lib.dbase.model import Date, Time, Observer, Location
 # ----------------
 # Module constants
 # ----------------
@@ -45,6 +45,7 @@ log = logging.getLogger(__name__.split(".")[-1])
 # -------------------
 # Auxiliary functions
 # -------------------
+
 
 def julian_day(date: datetime) -> float:
     """Returns the Julian day number of a date at 0h UTC."""
@@ -142,9 +143,10 @@ def cli_populate_location(session: Session, args: Namespace) -> None:
     log.info("Generating Default Unknown Location value")
     location = Location(
         location_id=-1,
-        longitude=0.0,
-        latitude=0.0,
-        masl=0.0,
+        longitude=None,
+        latitude=None,
+        masl=None,
+        coords_meas=Coordinates.UNKNOWN,
         place="Unknown",
         town="Unknown",
         sub_region="Unknown",
@@ -168,28 +170,9 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
     session.add(observer)
 
 
-def cli_populate_flags(session: Session, args: Namespace) -> None:
-    log.info("Generating Flags values")
-    flags = [
-        Flags(
-            temperature_meas=C.value.title(),
-            humidity_meas=H.value.title(),
-            timestamp_meas=T.value.title(),
-            coords_meas=CO.value.title(),
-        )
-        for C in Temperature
-        for H in Humidity
-        for T in Timestamp
-        for CO in Coordinates
-    ]
-    for obj in flags:
-        session.add(obj)
-
-
 def cli_populate_all(session: Session, args: Namespace) -> None:
     cli_populate_observer(session, args)
     cli_populate_location(session, args)
-    cli_populate_flags(session, args)
     cli_populate_time(session, args)
     cli_populate_date(session, args)
 
@@ -206,8 +189,6 @@ def add_args(parser: ArgumentParser) -> None:
     p.set_defaults(func=cli_populate_location)
     p = subparser.add_parser("observer", parents=[], help="Load initial Observer values")
     p.set_defaults(func=cli_populate_observer)
-    p = subparser.add_parser("flags", parents=[], help="Load intial Flags")
-    p.set_defaults(func=cli_populate_flags)
     p = subparser.add_parser(
         "all", parents=[prs.since(), prs.until(), prs.seconds()], help="Load all initial values"
     )

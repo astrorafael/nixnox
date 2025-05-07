@@ -27,14 +27,16 @@ class Humidity(Enum):
     MEDIAN = "Median of temperature measurements"
 
 class Timestamp(Enum):
+    UNKNOWN = "No timestamp"
     INITIAl_FINAL = "Start & end timestamp"
     INITAL = "Start timestamp only"
     FINAL = "End timestamp only"
     UNIQUE = "Individual readings timestamp"
 
 class Coordinates(Enum):
-    SINGLE = "Single Coordinates"
-    MEDIAN = "Median of Coordinates Values"
+    UNKNOWN = "No coordinates"
+    SINGLE = "Single coordinates"
+    MEDIAN = "Median of coordinates values"
 
 class ObserverType(Enum):
     PERSON = "Individual"

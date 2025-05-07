@@ -21,7 +21,6 @@ import pytz
 
 from sqlalchemy import (
     Enum,
-    Float,
     String,
     DateTime,
     ForeignKey,
@@ -238,6 +237,8 @@ class Location(Model):
     latitude: Mapped[Optional[float]]
     # Meters above sea level
     masl: Mapped[Optional[float]]
+    # Coordinates type
+    coords_meas: Mapped[Optional[CoordinatesType]] = mapped_column(CoordinatesType, nullable=True)
     # Descriptive name of this unitque location
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     # village, town, city, etc name
@@ -253,7 +254,7 @@ class Location(Model):
 
     def __repr__(self) -> str:
         return (
-            f"Location(longitude={self.longitude!s}, latitude={self.latitude!s}, masl={self.masl!s}, "
+            f"Location(longitude={self.longitude!s}, latitude={self.latitude!s}, masl={self.masl!s}, coords_meas={self.coords_meas!s},"
             f"place={self.place}, town={self.town}, sub_region={self.sub_region}, region={self.region}, country={self.country}, "
             f"timezone={self.timezone})"
         )
@@ -264,38 +265,13 @@ class Location(Model):
             longitude=self.longitude,
             latitude=self.latitude,
             masl=self.masl,
+            coords_meas=self.coords_meas,
             place=self.place,
             town=self.town,
             sub_region=self.sub_region,
             region=self.region,
             country=self.country,
             timezone=self.timezone,
-        )
-
-
-class Flags(Model):
-    __tablename__ = "flags_t"
-
-    flags_id: Mapped[int] = mapped_column(primary_key=True)
-    # Temperature measurement type
-    temperature_meas: Mapped[TemperatureType] = mapped_column(TemperatureType, nullable=False)
-    # Huminity measurement type
-    humidity_meas: Mapped[HumidityType] = mapped_column(HumidityType, nullable=False)
-    # Tiemstamp measurement type
-    timestamp_meas: Mapped[TimestampType] = mapped_column(TimestampType, nullable=False)
-    # Coordinates type
-    coords_meas: Mapped[Optional[CoordinatesType]] = mapped_column(CoordinatesType, nullable=True)
-
-    def __repr__(self) -> str:
-        return f"Flags(temperature_meas={self.temperature_meas!s}, humidity_meas={self.humidity_meas!s}, "
-        f"timestamp_meas={self.timestamp_meas!s}, coords_meas={self.coords_meas!s},)"
-
-    def to_table(self) -> dict:
-        return dict(
-            temperature_meas=self.temperature_meas.value,
-            humidity_meas=self.humidity_meas.value,
-            timestamp_meas=self.timestamp_meas.value,
-            coords_meas=self.coords_meas.value,
         )
 
 
@@ -346,14 +322,24 @@ class Observation(Model):
     identifier: Mapped[str] = mapped_column(String(128))
     # MD5 File digest to avoid duplicates
     digest: Mapped[str] = mapped_column(String(64), unique=True)
-    # Temperature in Celsius, see flags for meaning
+    # Temperature in Celsius, see temperature_meas for meaning
     temperature_1: Mapped[Optional[float]]
-    # Temperature in Celsius, see flags for meaning
+    # Temperature in Celsius, see temperature_meas for meaning
     temperature_2: Mapped[Optional[float]]
-    # Humidity, see flags for meaning
+    # Temperature measurement type
+    temperature_meas: Mapped[TemperatureType] = mapped_column(TemperatureType, nullable=False)
+    # Humidity, see humidity_meas for meaning
     humidity_1: Mapped[Optional[float]]
-    # Humidity, see flags for meaning
+    # Humidity, see humidity_meas for meaning
     humidity_2: Mapped[Optional[float]]
+    # Huminity measurement type
+    humidity_meas: Mapped[HumidityType] = mapped_column(HumidityType, nullable=False)
+    # Timestamp 1, see timestamp_meas for meaning
+    timestamp_1: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    #  Timestamp 2, see timestamp_meas for meaning
+    timestamp_2: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # Timestamp measurement type
+    timestamp_meas: Mapped[TimestampType] = mapped_column(TimestampType, nullable=False)
     # Weather conditions in free text form
     weather_conditions: Mapped[Optional[str]] = mapped_column(String(255))
     # Additional comments
@@ -370,8 +356,9 @@ class Observation(Model):
     def __repr__(self) -> str:
         return (
             f"Observation(identifier={self.identifier!s}, digest={self.digest}, "
-            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, "
-            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, "
+            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, temperature_meas={self.temperature_meas!s} "
+            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, humidity_meas={self.humidity_meas!s}, "
+            f"timestamp_1={self.timestamp_1!s}, timestamp_2={self.timestamp_2!s}, timestamp_meas={self.timestamp_meas!s}, , "
             f"weather_conditions={self.weather_conditions}, image_url={self.image_url}, other_observers={self.other_observers}, "
             f"comment={self.comment})"
         )
@@ -382,8 +369,13 @@ class Observation(Model):
             digest=self.digest,
             temperature_1=self.temperature_1,
             temperature_2=self.temperature_2,
+            temperature_meas=self.temperature_meas,
             humidity_1=self.humidity_1,
             humidity_2=self.humidity_2,
+            humidity_meas=self.humidity_meas,
+            timestamp_1=self.timestamp_1,
+            timestamp_2=self.timestamp_2,
+            timestamp_meas=self.timestamp_meas,
             weather_conditions=self.weather_conditions,
             image_url=self.image_url,
             other_observers=self.other_observers,
@@ -401,7 +393,6 @@ class Measurement(Model):
     location_id: Mapped[int] = mapped_column(ForeignKey("location_t.location_id"))
     phot_id: Mapped[int] = mapped_column(ForeignKey("photometer_t.phot_id"))
     obs_id: Mapped[int] = mapped_column(ForeignKey("observation_t.obs_id"))
-    flags_id: Mapped[int] = mapped_column(ForeignKey("flags_t.flags_id"))
     # Sequence number within the batch, TAS only
     sequence: Mapped[Optional[int]]
     # Azimuth in decimal degrees
@@ -434,7 +425,6 @@ class Measurement(Model):
     observer: Mapped["Observer"] = relationship()
     photometer: Mapped["Photometer"] = relationship()
     observation: Mapped["Observation"] = relationship(back_populates="measurements")
-    flags: Mapped["Flags"] = relationship()
     date: Mapped["Date"] = relationship()
     time: Mapped["Time"] = relationship()
 

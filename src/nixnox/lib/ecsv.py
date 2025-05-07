@@ -13,7 +13,7 @@ import logging
 import hashlib
 
 from datetime import datetime, timezone
-from typing import Optional, BinaryIO
+from typing import Optional, BinaryIO, Iterable
 
 # -------------------
 # Third party imports
@@ -43,7 +43,6 @@ from . import (
 )
 from .location import geolocate
 from .dbase.model import (
-    Flags,
     Photometer,
     Observer,
     Observation,
@@ -68,49 +67,34 @@ log = logging.getLogger(__name__.split(".")[-1])
 # Auxiliary functions
 # -------------------
 
-
-class DatabaseLoader:
-    def __init__(self, session: Session):
+class TASLoader:
+    def __init__(self, session: Session, table: Table):
         self.session = session
-        self.table = None
+        self.table = table
         self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
-        self.model = None
 
-    def _observation(self, digest: str) -> Optional[Observation]:
+    def observation(self, digest: str) -> Optional[Observation]:
         filename = self.table.meta["keywords"]["measurements_file"]
         filename, _ = os.path.splitext(filename)
-        if self.model == PhotometerModel.TAS:
-            temperature = np.median(self.table["T_sens"])
-            temperature_meas = Temperature.MEDIAN
-        else:
-            temperature = None
-            temperature_meas = Temperature.UNKNOWN
+        temperature = np.median(self.table["T_sens"])
+        temperature_meas = Temperature.MEDIAN
+        humidity_meas = Humidity.UNKNOWN
+        timestamp_meas = Timestamp.UNIQUE
         q = select(Observation).where(Observation.digest == digest)
         return self.session.scalars(q).one_or_none() or Observation(
             identifier=filename,
             digest=digest,
             temperature_1=temperature,
+            temperature_meas=temperature_meas,
+            humidity_meas=humidity_meas,
+            timestamp_meas=timestamp_meas,
         )
 
-    def _flags(self) -> Flags:
+    def photometer(self) -> Optional[Photometer]:
         name = self.table.meta["keywords"]["photometer"]
-        temperature = Temperature.MEDIAN if name.startswith("TAS") else Temperature.UNKNOWN
-        timestamp = Timestamp.UNIQUE if name.startswith("TAS") else Timestamp.INITIAL
-        coordinates = Coordinates.MEDIAN if name.startswith("TAS") else Timestamp.SINGLE
-        q = select(Flags).where(
-            Flags.temperature_meas == temperature,  # unique Sensor temperature in TAS
-            Flags.humidity_meas == Humidity.UNKNOWN,
-            Flags.timestamp_meas == timestamp,
-            Flags.coords_meas == coordinates,
-        )
-        return self.session.scalars(q).one()
-
-    def _photometer(self) -> Optional[Photometer]:
-        name = self.table.meta["keywords"]["photometer"]
-        model = PhotometerModel.TAS if name.startswith("TAS") else PhotometerModel.SQM
+        model = PhotometerModel.TAS
         comments = self.table.meta["keywords"]["comments"].split()
         zero_point = float(comments[2].split(":")[-1])
-        self.model = model
         q = select(Photometer).where(Photometer.name == name, Photometer.model == model)
         return self.session.scalars(q).one_or_none() or Photometer(
             model=model,
@@ -119,14 +103,11 @@ class DatabaseLoader:
             fov=17.0,
         )
 
-    def _location(self) -> Optional[Location]:
-        if self.model == PhotometerModel.TAS:
-            longitude = np.median(self.table["Long"])
-            latitude = np.median(self.table["Lat"])  
-            masl = np.median(self.table["SL"])  
-            coords_meas = Coordinates.MEDIAN
-        else:
-            raise NotImplementedError
+    def location(self) -> Optional[Location]:
+        longitude = np.median(self.table["Long"])
+        latitude = np.median(self.table["Lat"])
+        masl = np.median(self.table["SL"])
+        coords_meas = Coordinates.MEDIAN
         q = select(Location).where(Location.longitude == longitude, Location.latitude == latitude)
         location = self.session.scalars(q).one_or_none()
         if location is None:
@@ -143,6 +124,7 @@ class DatabaseLoader:
                 longitude=result["longitude"],
                 latitude=result["latitude"],
                 masl=masl,
+                coords_meas=coords_meas,
                 town=result["town"],
                 sub_region=result["sub_region"],
                 region=result["region"],
@@ -151,7 +133,7 @@ class DatabaseLoader:
             )
         return location
 
-    def _observer(self) -> Optional[Observer]:
+    def observer(self) -> Optional[Observer]:
         name = self.table.meta["keywords"]["author"]
         affiliation = self.table.meta["keywords"].get("association")
         obs_type = ObserverType.PERSON
@@ -165,50 +147,171 @@ class DatabaseLoader:
             valid_state=ValidState.CURRENT,
         )
 
-    def load(self, file_obj: BinaryIO) -> None:
-        digest = hashlib.md5(file_obj.read()).hexdigest()
-        file_obj.seek(0)  # Rewind to conver it to AstroPy Table
-        self.table = astropy.io.ascii.read(file_obj, format="ecsv")
-        with self.session.begin():
-            photometer = self._photometer()
-            observation = self._observation(digest)
-            flags = self._flags()
-            location = self._location()
-            observer = self._observer()
-            for item in (photometer, location, observer, observation, flags):
-                self.session.add(item)
-            for row in self.table:
-                tstamp = datetime.strptime(row["UT_Datetime"], self.tstamp_fmt)
-                measurement = Measurement(
-                    date_id=int(tstamp.strftime("%Y%m%d")),
-                    time_id=int(tstamp.strftime("%H%M%S")),
-                    photometer=photometer,
-                    observer=observer,
-                    location=location,
-                    observation=observation,
-                    flags=flags,
-                    sequence=int(row["ind"]),
-                    azimuth=row["Azi"],
-                    altitude=row["Alt"],
-                    zenital=90.0 - row["Alt"],
-                    magnitude=row["Mag"],
-                    frequency=row.get("Hz"),
-                    sky_temp=row.get("Temp_IR"),
-                    sensor_temp=row.get("T_sens"),
-                    longitude=row.get("Long"),
-                    latitude=row.get("Lat"),
-                    masl=row.get("SL"),
-                    bat_volt=row.get("VBat"),
-                )
-                self.session.add(measurement)
-            try:
-                self.session.commit()
-            except Exception as e:
-                log.error(e)
-                log.error("Trying to reload the same observation file?")
+    def measurements(
+        self,
+        photometer: Photometer,
+        observation: Observation,
+        location: Location,
+        observer: Observer,
+    ) -> Iterable[Measurement]:
+        measurements = list()
+        for row in self.table:
+            tstamp = datetime.strptime(row["UT_Datetime"], self.tstamp_fmt)
+            measurement = Measurement(
+                date_id=int(tstamp.strftime("%Y%m%d")),
+                time_id=int(tstamp.strftime("%H%M%S")),
+                photometer=photometer,
+                observer=observer,
+                location=location,
+                observation=observation,
+                sequence=int(row["ind"]),
+                azimuth=row["Azi"],
+                altitude=row["Alt"],
+                zenital=90.0 - row["Alt"],
+                magnitude=row["Mag"],
+                frequency=row.get("Hz"),
+                sky_temp=row.get("Temp_IR"),
+                sensor_temp=row.get("T_sens"),
+                longitude=row.get("Long"),
+                latitude=row.get("Lat"),
+                masl=row.get("SL"),
+                bat_volt=row.get("VBat"),
+            )
+            measurements.append(measurement)
+        return measurements
 
 
-class DatabaseLoaderV2(DatabaseLoader):
+
+class SQMLoader:
+    def __init__(self, session: Session, table: Table):
+        self.session = session
+        self.table = table
+        self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
+
+    def observation(self, digest: str) -> Optional[Observation]:
+        # THIS MUST BE REVIEWED
+        raise NotImplementedError
+        filename = self.table.meta["keywords"]["measurements_file"]
+        filename, _ = os.path.splitext(filename)
+        # THIS MUST BE REVIEWED
+        temperature = None
+        temperature_meas = Temperature.UNKNOWN
+        humidity_meas = Humidity.UNKNOWN
+        timestamp_meas = Timestamp.UNKNOWN
+        q = select(Observation).where(Observation.digest == digest)
+        return self.session.scalars(q).one_or_none() or Observation(
+            identifier=filename,
+            digest=digest,
+            temperature_1=temperature,
+            temperature_meas=temperature_meas,
+            humidity_meas=humidity_meas,
+            timestamp_meas=timestamp_meas,
+        )
+
+    def photometer(self) -> Optional[Photometer]:
+        # THIS MUST BE REVIEWED
+        raise NotImplementedError
+        name = self.table.meta["keywords"]["photometer"]
+        model = PhotometerModel.SQM
+        zero_point = 0
+        q = select(Photometer).where(Photometer.name == name, Photometer.model == model)
+        return self.session.scalars(q).one_or_none() or Photometer(
+            model=model,
+            name=name,
+            zero_point=zero_point,
+            fov=17.0,
+        )
+
+    def location(self) -> Optional[Location]:
+        # THIS MUST BE REVIEWED
+        raise NotImplementedError
+        longitude = np.median(self.table["Long"])
+        latitude = np.median(self.table["Lat"])
+        q = select(Location).where(Location.longitude == longitude, Location.latitude == latitude)
+        location = self.session.scalars(q).one_or_none()
+        if location is None:
+            result = geolocate(
+                longitude=longitude,
+                latitude=latitude,
+            )
+            result["town"] = result["town"] or "Unknown"
+            result["sub_region"] = result["sub_region"] or "Unknown"
+            result["region"] = result["region"] or "Unknown"
+            result["country"] = result["country"] or "Unknown"
+            location = Location(
+                place=self.table.meta["keywords"]["place"],
+                longitude=result["longitude"],
+                latitude=result["latitude"],
+                masl=masl,
+                coords_meas=coords_meas,
+                town=result["town"],
+                sub_region=result["sub_region"],
+                region=result["region"],
+                country=result["country"],
+                timezone=result["timezone"],
+            )
+        return location
+
+    def observer(self) -> Optional[Observer]:
+        # THIS MUST BE REVIEWED
+        raise NotImplementedError
+        name = self.table.meta["keywords"]["author"]
+        affiliation = self.table.meta["keywords"].get("association")
+        obs_type = ObserverType.PERSON
+        q = select(Observer).where(Observer.type == obs_type, Observer.name == name)
+        return self.session.scalars(q).one_or_none() or Observer(
+            type=ObserverType.PERSON,
+            name=self.table.meta["keywords"]["author"],
+            affiliation=affiliation,
+            valid_since=datetime.now(timezone.utc).replace(microsecond=0),
+            valid_until=datetime(year=2999, month=12, day=31, tzinfo=timezone.utc),
+            valid_state=ValidState.CURRENT,
+        )
+
+    def measurements(
+        self,
+        photometer: Photometer,
+        observation: Observation,
+        location: Location,
+        observer: Observer,
+    ) -> Iterable[Measurement]:
+        # THIS MUST BE REVIEWED
+        raise NotImplementedError
+
+def loader(session: Session, file_obj: BinaryIO) -> None:
+    digest = hashlib.md5(file_obj.read()).hexdigest()
+    file_obj.seek(0)  # Rewind to conver it to AstroPy Table
+    table = astropy.io.ascii.read(file_obj, format="ecsv")
+    name = table.meta["keywords"]["photometer"]
+    with session.begin():
+        subloader = (
+            TASLoader(session, table) if name.startswith("TAS") else SQMLoader(session, table)
+        )
+        photometer = subloader.photometer()
+        observation = subloader.observation(digest)
+        location = subloader.location()
+        observer = subloader.observer()
+        for item in (
+            photometer,
+            location,
+            observer,
+            observation,
+        ):
+            session.add(item)
+        measurements = subloader.measurements(photometer, observation, location, observer)
+        for measurement in measurements:
+            session.add(measurement)
+        try:
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            log.error("Trying to reload the same observation file?")
+
+def loader_v2(session: Session, file_obj: BinaryIO) -> None:
+    # THIS MUST BE REVIEWED
+    raise NotImplementedError
+
+class DatabaseLoaderV2:
     def __init__(self, session: Session):
         self.session = session
         self.table = None
@@ -221,18 +324,6 @@ class DatabaseLoaderV2(DatabaseLoader):
             identifier=obs_dict["identifier"],
             digest=obs_dict["digest"],
         )
-
-    def _flags(self) -> Flags:
-        flags_dict = self.table.meta["Flags"]
-        temperature = Temperature(flags_dict["temperature_meas"])
-        timestamp = Timestamp(flags_dict["timestamp_meas"])
-        humidity = Humidity(flags_dict["humidity_meas"])
-        q = select(Flags).where(
-            Flags.temperature_meas == temperature,  # unique Sensor temperature in TAS
-            Flags.humidity_meas == humidity,
-            Flags.timestamp_meas == timestamp,
-        )
-        return self.session.scalars(q).one()
 
     def _photometer(self) -> Optional[Photometer]:
         phot_dict = self.table.meta["Photometer"]
@@ -299,7 +390,6 @@ class TableBuilder:
             location = measurements[0].location
             observer = measurements[0].observer
             photometer = measurements[0].photometer
-            flags = measurements[0].flags
             data_rows = [
                 (
                     m.sequence,
@@ -338,7 +428,6 @@ class TableBuilder:
             table.meta["Location"] = location.to_table()
             table.meta["Photometer"] = photometer.to_table()
             table.meta["Observation"] = observation.to_table()
-            table.meta["Flags"] = flags.to_table()
             return table
         else:
             log.warn("No observation found with identifier %s", identifier)
