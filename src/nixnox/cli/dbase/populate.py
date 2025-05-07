@@ -26,7 +26,7 @@ from lica.cli import execute
 
 from ... import __version__
 from ..util import parser as prs
-from ...lib import ObserverType, Temperature, Humidity, Timestamp, ValidState
+from ...lib import ObserverType, Temperature, Humidity, Timestamp, Coordinates, ValidState
 from ...lib.dbase.model import Date, Time, Flags, Observer, Location
 # ----------------
 # Module constants
@@ -175,10 +175,12 @@ def cli_populate_flags(session: Session, args: Namespace) -> None:
             temperature_meas=C.value.title(),
             humidity_meas=H.value.title(),
             timestamp_meas=T.value.title(),
+            coords_meas=CO.value.title(),
         )
         for C in Temperature
         for H in Humidity
         for T in Timestamp
+        for CO in Coordinates
     ]
     for obj in flags:
         session.add(obj)

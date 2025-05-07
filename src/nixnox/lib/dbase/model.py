@@ -33,7 +33,15 @@ from lica.sqlalchemy.dbase import Model
 
 from lica.asyncio.photometer import Sensor
 
-from .. import ObserverType, ValidState, PhotometerModel, Temperature, Humidity, Timestamp
+from .. import (
+    ObserverType,
+    ValidState,
+    PhotometerModel,
+    Temperature,
+    Humidity,
+    Coordinates,
+    Timestamp,
+)
 
 # ================
 # Module constants
@@ -110,6 +118,15 @@ HumidityType: Enum = Enum(
 TimestampType: Enum = Enum(
     Timestamp,
     name="timestamp_type",
+    create_constraint=False,
+    metadata=Model.metadata,
+    validate_strings=True,
+    values_callable=lambda x: [e.value.title() for e in x],
+)
+
+CoordinatesType: Enum = Enum(
+    Coordinates,
+    name="coordinates_type",
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
@@ -216,15 +233,15 @@ class Location(Model):
 
     location_id: Mapped[int] = mapped_column(primary_key=True)
     # Geographical longitude in decimal degrees
-    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]]
     # Geographical in decimal degrees
-    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    latitude: Mapped[Optional[float]]
     # Meters above sea level
     masl: Mapped[Optional[float]]
     # Descriptive name of this unitque location
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     # village, town, city, etc name
-    town: Mapped[str] = mapped_column(String(255), nullable=False)  # .
+    town: Mapped[str] = mapped_column(String(255), nullable=False)
     # province, county, etc..
     sub_region: Mapped[str] = mapped_column(String(255), nullable=False)
     # federal state, comunidad autonomica, etc..
@@ -232,7 +249,7 @@ class Location(Model):
     country: Mapped[str] = mapped_column(String(64), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    __table_args__ = (UniqueConstraint(longitude, latitude), {})
+    __table_args__ = (UniqueConstraint("longitude", "latitude"), {})
 
     def __repr__(self) -> str:
         return (
@@ -266,15 +283,19 @@ class Flags(Model):
     humidity_meas: Mapped[HumidityType] = mapped_column(HumidityType, nullable=False)
     # Tiemstamp measurement type
     timestamp_meas: Mapped[TimestampType] = mapped_column(TimestampType, nullable=False)
+    # Coordinates type
+    coords_meas: Mapped[Optional[CoordinatesType]] = mapped_column(CoordinatesType, nullable=True)
 
     def __repr__(self) -> str:
-        return f"Flags(temperature_meas={self.temperature_meas!s}, humidity_meas={self.humidity_meas!s}, timestamp_meas={self.timestamp_meas!s})"
+        return f"Flags(temperature_meas={self.temperature_meas!s}, humidity_meas={self.humidity_meas!s}, "
+        f"timestamp_meas={self.timestamp_meas!s}, coords_meas={self.coords_meas!s},)"
 
     def to_table(self) -> dict:
         return dict(
             temperature_meas=self.temperature_meas.value,
             humidity_meas=self.humidity_meas.value,
             timestamp_meas=self.timestamp_meas.value,
+            coords_meas=self.coords_meas.value,
         )
 
 
@@ -397,6 +418,12 @@ class Measurement(Model):
     sensor_temp: Mapped[Optional[float]]
     # Infrarred temnperature in Celsius, TAS only
     sky_temp: Mapped[Optional[float]]
+    # individual GPŜ longitude in decimal degrees, TAS only
+    longitude: Mapped[Optional[float]]
+    # individual GPS latitude in decimal degrees, TAS only
+    latitude: Mapped[Optional[float]]
+    # individual GPS Meters above sea level, TAS only
+    masl: Mapped[Optional[float]]
     # Battery voltage, TAS only
     bat_volt: Mapped[Optional[float]]
 
