@@ -30,7 +30,7 @@ from ..util import parser as prs
 from ...lib.ecsv import (
     loader,
     loader_v2,
-    TableBuilder,
+    database_export,
 )
 
 # ----------------
@@ -59,8 +59,7 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 def cli_export_ecsv(session: Session, args: Namespace) -> None:
     identifier = " ".join(args.identifier)
-    builder = TableBuilder(session)
-    table = builder.build(identifier)
+    table = database_export(session, identifier)
     if table:
         path = "EXPORTED_" + identifier + '.ecsv'
         table.write(path, delimiter=args.delimiter, format="ascii.ecsv", overwrite=True)

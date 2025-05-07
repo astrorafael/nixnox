@@ -67,6 +67,7 @@ log = logging.getLogger(__name__.split(".")[-1])
 # Auxiliary functions
 # -------------------
 
+
 class TASLoader:
     def __init__(self, session: Session, table: Table):
         self.session = session
@@ -181,7 +182,6 @@ class TASLoader:
         return measurements
 
 
-
 class SQMLoader:
     def __init__(self, session: Session, table: Table):
         self.session = session
@@ -278,6 +278,7 @@ class SQMLoader:
         # THIS MUST BE REVIEWED
         raise NotImplementedError
 
+
 def loader(session: Session, file_obj: BinaryIO) -> None:
     digest = hashlib.md5(file_obj.read()).hexdigest()
     file_obj.seek(0)  # Rewind to conver it to AstroPy Table
@@ -307,9 +308,11 @@ def loader(session: Session, file_obj: BinaryIO) -> None:
             log.error(e)
             log.error("Trying to reload the same observation file?")
 
+
 def loader_v2(session: Session, file_obj: BinaryIO) -> None:
     # THIS MUST BE REVIEWED
     raise NotImplementedError
+
 
 class DatabaseLoaderV2:
     def __init__(self, session: Session):
@@ -377,58 +380,74 @@ class DatabaseLoaderV2:
         )
 
 
-class TableBuilder:
-    def __init__(self, session: Session):
-        self.session = session
+class TASExporter:
+    """Export a TAS Observation to AstroPy Table"""
 
-    def build(self, identifier: str) -> Optional[Table]:
-        table = None
-        q = select(Observation).where(Observation.identifier == identifier)
-        observation = self.session.scalars(q).one_or_none()
-        if observation:
-            measurements = observation.measurements  # This will trigger SQL query
-            location = measurements[0].location
-            observer = measurements[0].observer
-            photometer = measurements[0].photometer
-            data_rows = [
-                (
-                    m.sequence,
-                    m.local_time(location.timezone).isoformat(),
-                    m.utc_time().isoformat(),
-                    m.sky_temp * u.deg_C if m.sky_temp else None,
-                    m.sensor_temp * u.deg_C if m.sensor_temp else None,
-                    m.magnitude,
-                    m.frequency * u.Hz if m.frequency else None,
-                    m.altitude * u.deg,
-                    m.azimuth * u.deg,
-                    location.latitude * u.deg if location.latitude else None,
-                    location.longitude * u.deg if location.longitude else None,
-                    location.masl * u.m if location.masl else None,
-                    m.bat_volt * u.V if m.bat_volt else None,
-                )
-                for m in measurements
-            ]
-            header = (
-                "ind",
-                "Datetime",
-                "UT_Datetime",
-                "Temp_IR",
-                "T_sens",
-                "Mag",
-                "Hz",
-                "Alt",
-                "Azi",
-                "Lat",
-                "Long",
-                "SL",
-                "VBat",
+    def to_table(
+        self,
+        photometer: Photometer,
+        observation: Observation,
+        location: Location,
+        observer: Observer,
+        measurements: Measurement,
+    ) -> Table:
+        data_rows = [
+            (
+                m.sequence,
+                m.local_time(location.timezone).isoformat(),
+                m.utc_time().isoformat(),
+                m.sky_temp * u.deg_C,
+                m.sensor_temp * u.deg_C,
+                m.magnitude,
+                m.frequency * u.Hz,
+                m.altitude * u.deg,
+                m.azimuth * u.deg,
+                m.latitude * u.deg,
+                m.longitude * u.deg,
+                m.masl * u.m,
+                m.bat_volt * u.V if m.bat_volt else None,
             )
-            table = Table(rows=data_rows, names=header)
-            table.meta["Observer"] = observer.to_table()
-            table.meta["Location"] = location.to_table()
-            table.meta["Photometer"] = photometer.to_table()
-            table.meta["Observation"] = observation.to_table()
-            return table
-        else:
-            log.warn("No observation found with identifier %s", identifier)
+            for m in measurements
+        ]
+        header = (
+            "ind",
+            "Datetime",
+            "UT_Datetime",
+            "Temp_IR",
+            "T_sens",
+            "Mag",
+            "Hz",
+            "Alt",
+            "Azi",
+            "Lat",
+            "Long",
+            "SL",
+            "VBat",
+        )
+        table = Table(rows=data_rows, names=header)
+        table.meta["Observer"] = observer.to_table()
+        table.meta["Location"] = location.to_table()
+        table.meta["Photometer"] = photometer.to_table()
+        table.meta["Observation"] = observation.to_table()
         return table
+
+
+def database_export(session: Session, identifier: str) -> Optional[Table]:
+    table = None
+    q = select(Observation).where(Observation.identifier == identifier)
+    observation = session.scalars(q).one_or_none()
+    if observation:
+        # This will trigger several SQL queries
+        measurements = observation.measurements
+        location = measurements[0].location
+        observer = measurements[0].observer
+        photometer = measurements[0].photometer
+        if photometer.model == PhotometerModel.TAS:
+            table = TASExporter().to_table(
+                photometer, observation, location, observer, measurements
+            )
+        else:
+            raise NotImplementedError
+    else:
+        log.warn("No observation found with identifier %s", identifier)
+    return table
