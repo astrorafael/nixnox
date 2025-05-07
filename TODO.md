@@ -1,5 +1,4 @@
 # TODO
-* No photometer identifier (mac). Unique model + name.
 * New GeoCoords enum {SINGLE, MEDIAN}. coords_meas column in Location
 * Fill temperature_1 with median(T_sensor)
 * Add gps_latitude, gps_longitude, gps_masl to Measurement (only for TAS)

@@ -96,7 +96,6 @@ class DatabaseLoader:
         return self.session.scalars(q).one_or_none() or Photometer(
             model=model,
             name=name,
-            identifier=name,  # THIS SHOULD BE A MAC ADDRESS BUT WE DON'T HAVE IT !!
             zero_point=zero_point,
             fov=17.0,
         )
@@ -217,7 +216,6 @@ class DatabaseLoaderV2(DatabaseLoader):
         return self.session.scalars(q).one_or_none() or Photometer(
             model=model,
             name=name,
-            identifier=phot_dict["identifier"],
             zero_point=float(phot_dict["zero_point"]),
             fov=float(phot_dict["fov"]),
             comment=phot_dict["comment"],

@@ -286,8 +286,6 @@ class Photometer(Model):
     model: Mapped[PhotModelType] = mapped_column(PhotModelType)
     # Photometer name
     name: Mapped[str] = mapped_column(String(10))
-    # SQM serial id or TAS identifier (i.e. MAC)
-    identifier: Mapped[str] = mapped_column(String(17))
     # Photometer sensor model
     sensor: Mapped[SensorType] = mapped_column(SensorType, default=Sensor.TSL237)
     # Field of view in degrees
@@ -298,13 +296,13 @@ class Photometer(Model):
     comment: Mapped[Optional[str]] = mapped_column(String(255))
 
     __table_args__ = (
-        UniqueConstraint(name, identifier),
+        UniqueConstraint(model, name),
         {},
     )
 
     def __repr__(self) -> str:
         return (
-            f"Photometer(model={self.model!s}, name={self.name}, identifier={self.identifier}, sensor={self.sensor!s}, "
+            f"Photometer(model={self.model!s}, name={self.name}, sensor={self.sensor!s}, "
             f"fov={self.fov!s}, zero_point={self.zero_point!s}, comment={self.comment})"
         )
 
@@ -312,7 +310,6 @@ class Photometer(Model):
         return dict(
             model=self.model.value,
             name=self.name,
-            identifier=self.identifier,
             sensor=self.sensor.value,
             fov=self.fov,
             zero_point=self.zero_point,
@@ -414,7 +411,7 @@ class Measurement(Model):
     date: Mapped["Date"] = relationship()
     time: Mapped["Time"] = relationship()
 
-    # The constraint is defined by the fact that a given photometer 
+    # The constraint is defined by the fact that a given photometer
     # can only be at one point in the space-time
     table_args__ = (
         UniqueConstraint(date_id, time_id, location_id, phot_id),
