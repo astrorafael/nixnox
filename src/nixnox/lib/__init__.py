@@ -17,7 +17,7 @@ class Temperature(Enum):
     INITIAL_FINAL = "Initial & Final temperatures"
     MIN_MAX = "Min & Max temperatures"
     UNIQUE = "Individual temperature measurement"
-    MEDIAN = "Median of temperature measurements"
+    MEDIAN = "Median of sensor temperature measurements"
 
 class Humidity(Enum):
     UNKNOWN = "No humidity"
