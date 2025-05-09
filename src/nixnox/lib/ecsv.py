@@ -82,16 +82,21 @@ class TASLoader:
         humidity_meas = Humidity.UNKNOWN
         timestamp_meas = Timestamp.UNIQUE
         q = select(Observation).where(Observation.digest == digest)
-        return self.session.scalars(q).one_or_none() or Observation(
-            identifier=filename,
-            digest=digest,
-            temperature_1=temperature,
-            temperature_meas=temperature_meas,
-            humidity_meas=humidity_meas,
-            timestamp_meas=timestamp_meas,
-        )
+        previous = self.session.scalars(q).one_or_none()
+        if previous:
+            result = None
+        else:
+            result = Observation(
+                identifier=filename,
+                digest=digest,
+                temperature_1=temperature,
+                temperature_meas=temperature_meas,
+                humidity_meas=humidity_meas,
+                timestamp_meas=timestamp_meas,
+            )
+        return result
 
-    def photometer(self) -> Optional[Photometer]:
+    def photometer(self) -> Photometer:
         name = self.table.meta["keywords"]["photometer"]
         model = PhotometerModel.TAS
         comments = self.table.meta["keywords"]["comments"].split()
@@ -104,7 +109,7 @@ class TASLoader:
             fov=17.0,
         )
 
-    def location(self) -> Optional[Location]:
+    def location(self) -> Location:
         longitude = np.median(self.table["Long"])
         latitude = np.median(self.table["Lat"])
         masl = np.median(self.table["SL"])
@@ -134,7 +139,7 @@ class TASLoader:
             )
         return location
 
-    def observer(self) -> Optional[Observer]:
+    def observer(self) -> Observer:
         name = self.table.meta["keywords"]["author"]
         affiliation = self.table.meta["keywords"].get("association")
         obs_type = ObserverType.PERSON
@@ -288,6 +293,9 @@ def loader(session: Session, file_obj: BinaryIO) -> None:
         subloader = (
             TASLoader(session, table) if name.startswith("TAS") else SQMLoader(session, table)
         )
+        observation = subloader.observation(digest)
+        if observation is None:
+            raise RuntimeError("Observation already exists. Abort loading")
         photometer = subloader.photometer()
         observation = subloader.observation(digest)
         location = subloader.location()

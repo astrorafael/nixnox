@@ -428,12 +428,8 @@ class Measurement(Model):
     date: Mapped["Date"] = relationship()
     time: Mapped["Time"] = relationship()
 
-    # The constraint is defined by the fact that a given photometer
-    # can only be at one point in the space-time
-    table_args__ = (
-        UniqueConstraint(date_id, time_id, location_id, phot_id),
-        {},
-    )
+    # We can't establish uniqueness of measurements because manual measurements
+    # don't have a unique timestamps, only an initial, final or mid-term timestamp
 
     def utc_time(self) -> datetime:
         utc = str(self.date_id) + " " + self.time.time
