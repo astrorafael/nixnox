@@ -41,9 +41,9 @@ Repository = "https://github.com/STARS4ALL/nixnox.git"
 # These are Database related commands
 nx-db-schema = "nixnox.cli.dbase.schema:main"
 nx-db-populate = "nixnox.cli.dbase.populate:main"
-nx-db-import = "nixnox.cli.dbase.ecsv:importa"
-nx-db-export = "nixnox.cli.dbase.ecsv:export"
-
+nx-db-import = "nixnox.cli.dbase.ecsv:dbimport"
+nx-db-export = "nixnox.cli.dbase.ecsv:dbexport"
+nx-obs-load = "nixnox.cli.dbase.ecsv:obsload"
 
 [build-system]
 requires = ["setuptools >= 78.1", "wheel", "setuptools_scm[toml]>=8.2"]

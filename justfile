@@ -87,23 +87,24 @@ anew verbose="":
 # QUCK COMMAND LINE TESTING #
 # ========================= #
 
-load-ecsv:
+load:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    uv run nx-db-import --console --verbose --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
-    uv run nx-db-import --console --verbose --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv
+    uv run nx-obs-load --console --verbose --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
+    uv run nx-obs-load --console --verbose --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv
 
-load-ecsv2:
+import:
     #!/usr/bin/env bash   
     set -exuo pipefail
     uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
     uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASF46_AS_2024_10_05_042321_Yela.ecsv
 
-save-ecsv:
+export:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    uv run nx-db-export --console --verbose --trace observation --identifier TASD4B_AS_2024-10-23_224926_CASLEO
-    uv run nx-db-export --console --verbose --trace observation --identifier TASF46_AS_2024_10_05_042321_Yela
+    mkdir -p dbase 
+    uv run nx-db-export --console --verbose --trace observation --dir dbase --identifier TASD4B_AS_2024-10-23_224926_CASLEO
+    uv run nx-db-export --console --verbose --trace observation --dir dbase --identifier TASF46_AS_2024_10_05_042321_Yela
 
 # =======================================================================
 
@@ -130,6 +131,7 @@ env-backup bak_dir:
     cp {{ local_env }} {{ bak_dir }}
     cp nixnox.db {{ bak_dir }}
     cp *.ecsv {{ bak_dir }}
+    cp *.txt {{ bak_dir }}
   
 [private]
 env-restore bak_dir:
@@ -142,3 +144,4 @@ env-restore bak_dir:
     cp {{ bak_dir }}/.env {{ local_env }}
     cp {{ bak_dir }}/nixnox.db .
     cp {{ bak_dir }}/*.ecsv .
+    cp {{ bak_dir }}/*.txt .

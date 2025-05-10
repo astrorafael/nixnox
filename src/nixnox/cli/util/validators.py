@@ -11,7 +11,12 @@ def vextension(path: str, extension: str) -> str:
     return path
 
 vecsv = functools.partial(vextension, extension=".ecsv")
+vtxt = functools.partial(vextension, extension=".txt")
 
 def vecsvfile(path: str) -> str:
     path = vfile(path)
     return vecsv(path)
+
+def vtxtfile(path: str) -> str:
+    path = vfile(path)
+    return vtxt(path)

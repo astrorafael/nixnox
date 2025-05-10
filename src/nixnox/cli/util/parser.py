@@ -15,13 +15,13 @@ from argparse import ArgumentParser
 # Third-party library imports
 # ----------------------------
 
-from lica.validators import vdate
+from lica.validators import vdate, vdir
 
 # --------------
 # local imports
 # -------------
 
-from .validators import vecsvfile
+from .validators import vecsvfile, vtxtfile
 
 
 START_DATE = datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -106,12 +106,24 @@ def ident() -> ArgumentParser:
     )
     return parser
 
-def new() -> ArgumentParser:
+def text() -> ArgumentParser:
     parser = ArgumentParser(add_help=False)
     parser.add_argument(
-        "-n",
-        "--new",
-        action="store_true",
-        help="Load using new ECSV format",
+        "-t",
+        "--text",
+        type=vtxtfile,
+        help="Optional TAS observation file to extract VBat values",
+    )
+    return parser
+
+
+def folder() -> ArgumentParser:
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument(
+        "-f",
+        "--folder",
+        type=vdir,
+        required=True,
+        help="target export directory",
     )
     return parser

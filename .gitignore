@@ -17,4 +17,5 @@ _version.py
 *.ecsv
 *.bak
 *.log
+*.txt
 test*.py
