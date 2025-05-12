@@ -29,7 +29,7 @@ from astropy.table import Table
 # local imports
 # -------------
 
-from . import (
+from .. import (
     ObserverType,
     PhotometerModel,
     Temperature,
@@ -38,8 +38,8 @@ from . import (
     Coordinates,
     ValidState,
 )
-from .location import geolocate
-from .dbase.model import (
+from ..location import geolocate
+from ..dbase.model import (
     Photometer,
     Observer,
     Observation,

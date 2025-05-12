@@ -40,14 +40,14 @@ from .sqm import SQMLoader
 log = logging.getLogger(__name__.split(".")[-1])
 
 
-def loader(session: Session, file_obj: BinaryIO) -> None:
+def loader(session: Session, file_obj: BinaryIO, **kwargs) -> None:
     digest = hashlib.md5(file_obj.read()).hexdigest()
     file_obj.seek(0)  # Rewind to conver it to AstroPy Table
     table = astropy.io.ascii.read(file_obj, format="ecsv")
     name = table.meta["keywords"]["photometer"]
     with session.begin():
         subloader = (
-            TASLoader(session, table) if name.startswith("TAS") else SQMLoader(session, table)
+            TASLoader(session, table, kwargs["extra_path"]) if name.startswith("TAS") else SQMLoader(session, table)
         )
         observation = subloader.observation(digest)
         if observation is None:

@@ -23,6 +23,7 @@ import numpy as np
 from sqlalchemy import select
 from lica.sqlalchemy.dbase import Session
 
+import astropy.io.ascii
 from astropy.table import Table
 from astropy import units as u
 
@@ -67,10 +68,11 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 
 class TASLoader:
-    def __init__(self, session: Session, table: Table):
+    def __init__(self, session: Session, table: Table, extra_path: str):
         self.session = session
         self.table = table
         self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
+        self.extra_path = extra_path
 
     def observation(self, digest: str) -> Optional[Observation]:
         filename = self.table.meta["keywords"]["measurements_file"]
@@ -182,8 +184,34 @@ class TASLoader:
                 bat_volt=row.get("VBat"),
             )
             measurements.append(measurement)
+        self.fill_vbat(measurements)
         return measurements
 
+    def fill_vbat(self, measurements: Iterable[Measurement]) -> None:
+        """Take the raw TAS file to extract battery voltages"""
+        if self.extra_path:
+            names = (
+                "ind",
+                "Date",
+                "Time",
+                "T IR",
+                "T Sens",
+                "Mag",
+                "Hz",
+                "Alt",
+                "Azi",
+                "Lat",
+                "Long",
+                "SL",
+                "Bat",
+            )
+            with open(self.extra_path, "rb") as fd:
+                extra_table = astropy.io.ascii.read(
+                    fd, format="csv", names=names, data_start=1, delimiter="\t"
+                )
+                for measurement, extra in zip(measurements, extra_table):
+                    assert measurement.sequence == int(extra["ind"])
+                    measurement.bat_volt = float(extra["Bat"])
 
 
 class DatabaseLoaderV2:
@@ -302,5 +330,3 @@ class TASExporter:
         table.meta["Photometer"] = photometer.to_table()
         table.meta["Observation"] = observation.to_table()
         return table
-
-

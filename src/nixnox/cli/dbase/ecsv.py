@@ -29,7 +29,7 @@ from ..util import parser as prs
 
 from ...lib.ecsv import (
     loader,
-    loader_v2,
+    database_import,
     database_export,
 )
 
@@ -70,14 +70,14 @@ def cli_dbimport_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        loader_v2(session, file_obj)
+        database_import(session, file_obj)
 
 
-def cli_obsimport_ecsv(session: Session, args: Namespace) -> None:
+def cli_obsload_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        loader(session, file_obj)
+        loader(session, file_obj, extra_path=args.text)
 
 
 def add_dbimport_args(parser: ArgumentParser) -> None:
@@ -100,10 +100,10 @@ def add_obsload_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
     p = subparser.add_parser(
         "observation",
-        parents=[prs.ident(), prs.text()],
+        parents=[prs.ifile(), prs.text()],
         help="Load a single TAS/SQL observation file",
     )
-    p.set_defaults(func=cli_obsimport_ecsv)
+    p.set_defaults(func=cli_obsload_ecsv)
 
 
 def cli_main(args: Namespace) -> None:

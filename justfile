@@ -90,8 +90,8 @@ anew verbose="":
 load:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    uv run nx-obs-load --console --verbose --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
-    uv run nx-obs-load --console --verbose --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv
+    uv run nx-obs-load --console --verbose --trace observation --input-file TASD4B_AS_2024-10-23_224926_CASLEO.ecsv --text TASD4B_AS_2024-10-23_224926_CASLEO.txt
+    uv run nx-obs-load --console --verbose --trace observation --input-file TASF46_AS_2024_10_05_042321_Yela.ecsv --text TASF46_AS_2024_10_05_042321_Yela.txt
 
 import:
     #!/usr/bin/env bash   
