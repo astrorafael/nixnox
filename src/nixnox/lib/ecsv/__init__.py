@@ -11,8 +11,9 @@
 
 import logging
 import hashlib
+import os
 
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 # -------------------
 # Third party imports
@@ -76,23 +77,39 @@ def database_import(session: Session, file_obj: BinaryIO) -> None:
     # THIS MUST BE REVIEWED
     raise NotImplementedError
 
-
-def database_export(session: Session, identifier: str) -> Optional[Table]:
-    table = None
-    q = select(Observation).where(Observation.identifier == identifier)
-    observation = session.scalars(q).one_or_none()
-    if observation:
-        # This will trigger several SQL queries
-        measurements = observation.measurements
-        location = measurements[0].location
-        observer = measurements[0].observer
-        photometer = measurements[0].photometer
-        if photometer.model == PhotometerModel.TAS:
-            table = TASExporter().to_table(
-                photometer, observation, location, observer, measurements
-            )
-        else:
-            raise NotImplementedError
+def _recall_observation(session: Session,  observation: Observation) -> Table:
+    # This will trigger several SQL queries
+    measurements = observation.measurements
+    location = measurements[0].location
+    observer = measurements[0].observer
+    photometer = measurements[0].photometer
+    if photometer.model == PhotometerModel.TAS:
+        table = TASExporter().to_table(
+                    photometer, observation, location, observer, measurements
+                )
     else:
-        log.warn("No observation found with identifier %s", identifier)
+        raise NotImplementedError
     return table
+
+def database_export(session: Session, out_dir: str, identifier: str|None) -> None:
+    if identifier is not None:
+        q = select(Observation).where(Observation.identifier == identifier)
+        observation = session.scalars(q).one_or_none()
+        if observation:
+            table = _recall_observation(session, observation)
+        else:
+            log.warn("No observation found with identifier %s", identifier)
+        path = os.path.join(out_dir, identifier + ".ecsv")
+        table.write(path, delimiter=",", format="ascii.ecsv", overwrite=True)
+    else:
+        q = select(Observation)
+        observations = session.scalars(q).all()
+        for observation in observations:
+            identifier = observation.identifier
+            table = _recall_observation(session, observation)
+            path = os.path.join(out_dir, identifier + ".ecsv")
+            table.write(path, delimiter=",", format="ascii.ecsv", overwrite=True)
+
+
+
+

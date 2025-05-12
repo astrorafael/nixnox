@@ -8,6 +8,7 @@
 # System wide imports
 # -------------------
 
+import os
 from datetime import datetime
 from argparse import ArgumentParser
 
@@ -122,8 +123,8 @@ def folder() -> ArgumentParser:
     parser.add_argument(
         "-f",
         "--folder",
-        type=vdir,
-        required=True,
+        type=str,
+        default=os.getcwd(),
         help="target export directory",
     )
     return parser

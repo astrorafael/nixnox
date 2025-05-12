@@ -8,6 +8,7 @@
 # System wide imports
 # -------------------
 
+import os
 import logging
 from argparse import ArgumentParser, Namespace
 
@@ -57,13 +58,15 @@ log = logging.getLogger(__name__.split(".")[-1])
 # -------------
 
 
-def cli_dbexport_ecsv(session: Session, args: Namespace) -> None:
+def cli_dbexport_single(session: Session, args: Namespace) -> None:
     identifier = " ".join(args.identifier)
-    folder = args.dir
-    table = database_export(session, identifier)
-    if table:
-        path = identifier + ".ecsv"
-        table.write(path, delimiter=args.delimiter, format="ascii.ecsv", overwrite=True)
+    os.makedirs(args.folder, exist_ok=True)
+    database_export(session, args.folder, identifier)
+    
+
+def cli_dbexport_all(session: Session, args: Namespace) -> None:
+    os.makedirs(args.folder, exist_ok=True)
+    database_export(session, args.folder, identifier=None)
 
 
 def cli_dbimport_ecsv(session: Session, args: Namespace) -> None:
@@ -93,7 +96,11 @@ def add_dbexport_args(parser: ArgumentParser) -> None:
     p = subparser.add_parser(
         "observation", parents=[prs.ident(), prs.folder()], help="Export single database ECSV file"
     )
-    p.set_defaults(func=cli_dbexport_ecsv)
+    p.set_defaults(func=cli_dbexport_single)
+    p = subparser.add_parser(
+        "all", parents=[prs.folder()], help="Export all database observations as ECSV files"
+    )
+    p.set_defaults(func=cli_dbexport_all)
 
 
 def add_obsload_args(parser: ArgumentParser) -> None:

@@ -102,9 +102,7 @@ import:
 export:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    mkdir -p dbase 
-    uv run nx-db-export --console --verbose --trace observation --dir dbase --identifier TASD4B_AS_2024-10-23_224926_CASLEO
-    uv run nx-db-export --console --verbose --trace observation --dir dbase --identifier TASF46_AS_2024_10_05_042321_Yela
+    uv run nx-db-export --console --verbose --trace all --folder export
 
 # =======================================================================
 
