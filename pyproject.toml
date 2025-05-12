@@ -20,6 +20,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 dependencies = [
+  # --------------------------------
+  # These are for the nixnox library
+  # --------------------------------
   "python-decouple >= 3.8",  # Get info from enviromental variables
   "typing-extensions >= 4.12", # Self for Python < 3.11
   # Async Database stuff
@@ -28,9 +31,14 @@ dependencies = [
   "lica>=1.1",
   "astropy>=7.0",
   # Automatic location
-  "geopy>=2.4.1",
+  "geopy>=2.4",
   "pytz>=2025.02",
-  "timezonefinder>=6.5.9",
+  "timezonefinder>=6.5",
+  # ------------------------
+  # These are for nixnox web
+  # ------------------------
+  "streamlit>=1.45",
+  #"streamlit_sqlalchemy>=0.2",
 ]
 
 [project.urls]

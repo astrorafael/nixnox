@@ -103,6 +103,15 @@ export:
     set -exuo pipefail
     uv run nx-db-export --console --verbose --trace all --folder export
 
+# ============================== #
+# NIXNOX WEB TEST AND PROTOTYPES #
+# ============================== #
+
+web:
+    #!/usr/bin/env bash   
+    set -exuo pipefail
+    uv run streamlit run web.py
+
 # =======================================================================
 
     
@@ -129,6 +138,7 @@ env-backup bak_dir:
     cp nixnox.db {{ bak_dir }}
     cp *.ecsv {{ bak_dir }}
     cp *.txt {{ bak_dir }}
+    cp -r .streamlit {{ bak_dir }}
   
 [private]
 env-restore bak_dir:
@@ -142,3 +152,4 @@ env-restore bak_dir:
     cp {{ bak_dir }}/nixnox.db .
     cp {{ bak_dir }}/*.ecsv .
     cp {{ bak_dir }}/*.txt .
+    cp -r {{ bak_dir }}/.streamlit .

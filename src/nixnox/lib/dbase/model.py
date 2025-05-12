@@ -138,7 +138,7 @@ CoordinatesType: Enum = Enum(
 
 
 class Date(Model):
-    __tablename__ = "date_t"
+    __tablename__ = "nx_date_t"
 
     # Date as YYYYMMDD integer
     date_id: Mapped[int] = mapped_column(primary_key=True)
@@ -167,7 +167,7 @@ class Date(Model):
 
 
 class Time(Model):
-    __tablename__ = "time_t"
+    __tablename__ = "nx_time_t"
 
     # HHMMSS as integer
     time_id: Mapped[int] = mapped_column(primary_key=True)
@@ -180,7 +180,7 @@ class Time(Model):
 
 
 class Observer(Model):
-    __tablename__ = "observer_t"
+    __tablename__ = "nx_observer_t"
 
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
@@ -228,7 +228,7 @@ class Observer(Model):
 
 
 class Location(Model):
-    __tablename__ = "location_t"
+    __tablename__ = "nx_location_t"
 
     location_id: Mapped[int] = mapped_column(primary_key=True)
     # Geographical longitude in decimal degrees
@@ -276,7 +276,7 @@ class Location(Model):
 
 
 class Photometer(Model):
-    __tablename__ = "photometer_t"
+    __tablename__ = "nx_photometer_t"
 
     phot_id: Mapped[int] = mapped_column(primary_key=True)
     # Either TAS or SQM
@@ -315,7 +315,7 @@ class Photometer(Model):
 
 
 class Observation(Model):
-    __tablename__ = "observation_t"
+    __tablename__ = "nx_observation_t"
 
     obs_id: Mapped[int] = mapped_column(primary_key=True)
     # Identifier is the original filename, without path or extension
@@ -356,9 +356,9 @@ class Observation(Model):
     def __repr__(self) -> str:
         return (
             f"Observation(identifier={self.identifier!s}, digest={self.digest}, "
-            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, temperature_meas={self.temperature_meas!s} "
-            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, humidity_meas={self.humidity_meas!s}, "
-            f"timestamp_1={self.timestamp_1!s}, timestamp_2={self.timestamp_2!s}, timestamp_meas={self.timestamp_meas!s}, , "
+            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, temperature_meas={self.temperature_meas.value} "
+            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, humidity_meas={self.humidity_meas.value}, "
+            f"timestamp_1={self.timestamp_1!s}, timestamp_2={self.timestamp_2!s}, timestamp_meas={self.timestamp_meas.value}, , "
             f"weather_conditions={self.weather_conditions}, image_url={self.image_url}, other_observers={self.other_observers}, "
             f"comment={self.comment})"
         )
@@ -384,15 +384,15 @@ class Observation(Model):
 
 
 class Measurement(Model):
-    __tablename__ = "measurement_t"
+    __tablename__ = "nx_measurement_t"
 
     meas_id: Mapped[int] = mapped_column(primary_key=True)
-    date_id: Mapped[int] = mapped_column(ForeignKey("date_t.date_id"))
-    time_id: Mapped[int] = mapped_column(ForeignKey("time_t.time_id"))
-    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"))
-    location_id: Mapped[int] = mapped_column(ForeignKey("location_t.location_id"))
-    phot_id: Mapped[int] = mapped_column(ForeignKey("photometer_t.phot_id"))
-    obs_id: Mapped[int] = mapped_column(ForeignKey("observation_t.obs_id"))
+    date_id: Mapped[int] = mapped_column(ForeignKey("nx_date_t.date_id"))
+    time_id: Mapped[int] = mapped_column(ForeignKey("nx_time_t.time_id"))
+    observer_id: Mapped[int] = mapped_column(ForeignKey("nx_observer_t.observer_id"))
+    location_id: Mapped[int] = mapped_column(ForeignKey("nx_location_t.location_id"))
+    phot_id: Mapped[int] = mapped_column(ForeignKey("nx_photometer_t.phot_id"))
+    obs_id: Mapped[int] = mapped_column(ForeignKey("nx_observation_t.obs_id"))
     # Sequence number within the batch, TAS only
     sequence: Mapped[Optional[int]]
     # Azimuth in decimal degrees
