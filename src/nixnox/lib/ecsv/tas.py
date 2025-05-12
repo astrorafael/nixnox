@@ -27,6 +27,8 @@ import astropy.io.ascii
 from astropy.table import Table
 from astropy import units as u
 
+from lica.asyncio.photometer import Sensor
+
 # --------------
 # local imports
 # -------------
@@ -214,21 +216,37 @@ class TASLoader:
                     measurement.bat_volt = float(extra["Bat"])
 
 
-class DatabaseLoaderV2:
-    def __init__(self, session: Session):
+class TASImporter:
+    def __init__(self, session: Session, table: Table):
         self.session = session
-        self.table = None
+        self.table = table
         self.tstamp_fmt = "%Y-%m-%dT%H:%M:%S%z"
 
-    def _observation(self, digest: str) -> Optional[Observation]:
+    def observation(self) -> Optional[Observation]:
         obs_dict = self.table.meta["Observation"]
         q = select(Observation).where(Observation.digest == obs_dict["digest"])
-        return self.session.scalars(q).one_or_none() or Observation(
+        previous = self.session.scalars(q).one_or_none()
+        if previous:
+            return None
+        return Observation(
             identifier=obs_dict["identifier"],
             digest=obs_dict["digest"],
+            temperature_1=obs_dict["temperature_1"],
+            temperature_2=obs_dict["temperature_1"],
+            temperature_meas=Temperature(obs_dict["temperature_meas"]),
+            humidity_meas=Humidity(obs_dict["humidity_meas"]),
+            humidity_1=obs_dict["humidity_1"],
+            humidity_2=obs_dict["humidity_2"],
+            timestamp_1=obs_dict["timestamp_1"],
+            timestamp_2=obs_dict["timestamp_2"],
+            timestamp_meas=Timestamp(obs_dict["timestamp_meas"]),
+            weather_conditions=obs_dict["weather_conditions"],
+            other_observers=obs_dict["other_observers"],
+            comment=obs_dict["comment"],
+            image_url=obs_dict["image_url"],
         )
 
-    def _photometer(self) -> Optional[Photometer]:
+    def photometer(self) -> Photometer:
         phot_dict = self.table.meta["Photometer"]
         name = phot_dict["name"]
         model = PhotometerModel(phot_dict["model"])
@@ -236,32 +254,34 @@ class DatabaseLoaderV2:
         return self.session.scalars(q).one_or_none() or Photometer(
             model=model,
             name=name,
-            zero_point=float(phot_dict["zero_point"]),
+            sensor=Sensor(phot_dict["sensor"]),
             fov=float(phot_dict["fov"]),
+            zero_point=float(phot_dict["zero_point"]),
             comment=phot_dict["comment"],
         )
 
-    def _location(self) -> Optional[Location]:
-        phot_dict = self.table.meta["Location"]
-        longitude = float(phot_dict["longitude"])
-        latitude = float(phot_dict["latitude"])
+    def location(self) -> Location:
+        loc_dict = self.table.meta["Location"]
+        longitude = float(loc_dict["longitude"])
+        latitude = float(loc_dict["latitude"])
         q = select(Location).where(Location.longitude == longitude, Location.latitude == latitude)
         location = self.session.scalars(q).one_or_none()
         if location is None:
             location = Location(
-                place=phot_dict["place"],
+                place=loc_dict["place"],
                 longitude=longitude,
                 latitude=latitude,
-                masl=float(phot_dict["masl"]),
-                town=phot_dict["town"],
-                sub_region=phot_dict["sub_region"],
-                region=phot_dict["region"],
-                country=phot_dict["country"],
-                timezone=phot_dict["timezone"],
+                masl=float(loc_dict["masl"]),
+                coords_meas=Coordinates(loc_dict["coords_meas"]),
+                town=loc_dict["town"],
+                sub_region=loc_dict["sub_region"],
+                region=loc_dict["region"],
+                country=loc_dict["country"],
+                timezone=loc_dict["timezone"],
             )
         return location
 
-    def _observer(self) -> Optional[Observer]:
+    def observer(self) -> Observer:
         over_dict = self.table.meta["Observer"]
         name = over_dict["name"]
         obs_type = ObserverType(over_dict["type"])
@@ -278,6 +298,39 @@ class DatabaseLoaderV2:
             valid_until=datetime.strptime(over_dict["valid_until"], "%Y-%m-%dT%H:%M:%S"),
             valid_state=ValidState(over_dict["valid_state"]),
         )
+
+    def measurements(
+        self,
+        photometer: Photometer,
+        observation: Observation,
+        location: Location,
+        observer: Observer,
+    ) -> Iterable[Measurement]:
+        measurements = list()
+        for row in self.table:
+            tstamp = datetime.strptime(row["UT_Datetime"], self.tstamp_fmt)
+            measurement = Measurement(
+                date_id=int(tstamp.strftime("%Y%m%d")),
+                time_id=int(tstamp.strftime("%H%M%S")),
+                photometer=photometer,
+                observer=observer,
+                location=location,
+                observation=observation,
+                sequence=int(row["ind"]),
+                azimuth=row["Azi"],
+                altitude=row["Alt"],
+                zenital=90.0 - row["Alt"],
+                magnitude=row["Mag"],
+                frequency=row.get("Hz"),
+                sky_temp=row.get("Temp_IR"),
+                sensor_temp=row.get("T_sens"),
+                longitude=row.get("Long"),
+                latitude=row.get("Lat"),
+                masl=row.get("SL"),
+                bat_volt=row.get("VBat"),
+            )
+            measurements.append(measurement)
+        return measurements
 
 
 class TASExporter:

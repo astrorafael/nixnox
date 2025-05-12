@@ -96,8 +96,7 @@ load:
 import:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASD4B_AS_2024-10-23_224926_CASLEO.ecsv
-    uv run nx-db-import --console --verbose --trace observation --new --input-file EXPORTED_TASF46_AS_2024_10_05_042321_Yela.ecsv
+    uv run nx-db-import --console --verbose --trace all --folder export
 
 export:
     #!/usr/bin/env bash   

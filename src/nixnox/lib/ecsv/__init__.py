@@ -33,7 +33,7 @@ from astropy.table import Table
 from .. import PhotometerModel
 from ..dbase.model import Observation
 
-from .tas import TASLoader, TASExporter
+from .tas import TASLoader, TASExporter, TASImporter
 from .sqm import SQMLoader
 
 
@@ -75,7 +75,35 @@ def loader(session: Session, file_obj: BinaryIO, **kwargs) -> None:
 
 def database_import(session: Session, file_obj: BinaryIO) -> None:
     # THIS MUST BE REVIEWED
-    raise NotImplementedError
+    table = astropy.io.ascii.read(file_obj, format="ecsv")
+    log.info(table.meta)
+    with session.begin():
+        importer = TASImporter(session, table)
+        observation = importer.observation()
+        if observation is None:
+            raise RuntimeError("Observation already exists. Abort import")
+        photometer = importer.photometer()
+        location = importer.location()
+        observer = importer.observer()
+        for item in (
+            photometer,
+            location,
+            observer,
+            observation,
+        ):
+            session.add(item)
+        measurements = importer.measurements(photometer, observation, location, observer)
+        for measurement in measurements:
+            session.add(measurement)
+        try:
+            session.commit()
+        except Exception as e:
+            log.error(e)
+            log.error("Trying to reload the same observation file?")
+
+
+
+    
 
 def _recall_observation(session: Session,  observation: Observation) -> Table:
     # This will trigger several SQL queries

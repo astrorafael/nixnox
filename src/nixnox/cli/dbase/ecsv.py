@@ -9,6 +9,7 @@
 # -------------------
 
 import os
+import glob
 import logging
 from argparse import ArgumentParser, Namespace
 
@@ -69,11 +70,18 @@ def cli_dbexport_all(session: Session, args: Namespace) -> None:
     database_export(session, args.folder, identifier=None)
 
 
-def cli_dbimport_ecsv(session: Session, args: Namespace) -> None:
+def cli_dbimport_single(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
         database_import(session, file_obj)
+
+def cli_dbimport_all(session: Session, args: Namespace) -> None:
+    for path in glob.iglob("*.ecsv", root_dir=args.folder):
+        path = os.path.join(args.folder, path)
+        log.info("Loading file %s", path)
+        with open(path, "rb") as file_obj:
+            database_import(session, file_obj)
 
 
 def cli_obsload_ecsv(session: Session, args: Namespace) -> None:
@@ -88,7 +96,11 @@ def add_dbimport_args(parser: ArgumentParser) -> None:
     p = subparser.add_parser(
         "observation", parents=[prs.ifile()], help="Import single database ECSV file"
     )
-    p.set_defaults(func=cli_dbimport_ecsv)
+    p.set_defaults(func=cli_dbimport_single)
+    p = subparser.add_parser(
+        "all", parents=[prs.folder()], help="Export all database observations as ECSV files"
+    )
+    p.set_defaults(func=cli_dbimport_all)
 
 
 def add_dbexport_args(parser: ArgumentParser) -> None:
