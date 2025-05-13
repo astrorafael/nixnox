@@ -11,7 +11,7 @@ wheels/
 
 # My own stuff
 .env
-.streamlit
+secrets.toml
 _version.py
 *.db
 *.csv

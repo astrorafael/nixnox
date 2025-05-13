@@ -165,6 +165,8 @@ class Date(Model):
     month_abbr: Mapped[str] = mapped_column(String(3))
     year: Mapped[int]
 
+    __table_args__ = {"extend_existing": True}  # This is for streamlit only :-(
+
 
 class Time(Model):
     __tablename__ = "nx_time_t"
@@ -177,6 +179,8 @@ class Time(Model):
     minute: Mapped[int]
     second: Mapped[int]
     day_fraction: Mapped[float]
+
+    __table_args__ = {"extend_existing": True}  # This is for streamlit only :-(
 
 
 class Observer(Model):
@@ -202,7 +206,10 @@ class Observer(Model):
     valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=False)
 
-    __table_args__ = (UniqueConstraint(name, valid_since, valid_until), {})
+    __table_args__ = (
+        UniqueConstraint(name, valid_since, valid_until),
+        {"extend_existing": True}, # extend_existing is for streamlit only :-(
+    )
 
     def __repr__(self) -> str:
         return str(self.to_table())
@@ -246,7 +253,10 @@ class Location(Model):
     country: Mapped[str] = mapped_column(String(64), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    __table_args__ = (UniqueConstraint("longitude", "latitude"), {})
+    __table_args__ = (
+        UniqueConstraint("longitude", "latitude"),
+        {"extend_existing": True},  # extend_existing is for streamlit only :-(
+    )
 
     def __repr__(self) -> str:
         return str(self.to_table())
@@ -286,7 +296,7 @@ class Photometer(Model):
 
     __table_args__ = (
         UniqueConstraint(model, name),
-        {},
+        {"extend_existing": True},  # This is for streamlit only :-(
     )
 
     def __repr__(self) -> str:
@@ -341,6 +351,8 @@ class Observation(Model):
     # These are relationship attributes
     # These are not real columns, part of the ORM magic
     measurements: Mapped[List["Measurement"]] = relationship(back_populates="observation")
+
+    __table_args__ = {"extend_existing": True}  # This is for streamlit only :-(
 
     def __repr__(self) -> str:
         return str(self.to_table())
@@ -409,6 +421,8 @@ class Measurement(Model):
     observation: Mapped["Observation"] = relationship(back_populates="measurements")
     date: Mapped["Date"] = relationship()
     time: Mapped["Time"] = relationship()
+
+    __table_args__ = {"extend_existing": True}  # This is for streamlit only :-(
 
     # We can't establish uniqueness of measurements because manual measurements
     # don't have a unique timestamps, only an initial, final or mid-term timestamp
