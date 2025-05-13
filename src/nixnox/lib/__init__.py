@@ -31,7 +31,7 @@ class Timestamp(Enum):
     INITIAl_FINAL = "Start & end timestamp"
     INITAL = "Start timestamp only"
     FINAL = "End timestamp only"
-    UNIQUE = "Individual readings timestamp"
+    MIDTERM = "Mid term of indivitual timestamp readings"
 
 class Coordinates(Enum):
     UNKNOWN = "No coordinates"

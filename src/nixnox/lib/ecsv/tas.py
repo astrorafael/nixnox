@@ -11,7 +11,7 @@
 import os
 import logging
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Iterable
 
 # -------------------
@@ -82,7 +82,11 @@ class TASLoader:
         temperature = np.median(self.table["T_sens"])
         temperature_meas = Temperature.MEDIAN
         humidity_meas = Humidity.UNKNOWN
-        timestamp_meas = Timestamp.UNIQUE
+        timestamp_meas = Timestamp.MIDTERM
+        t_initial = datetime.strptime(min(self.table["UT_Datetime"]), self.tstamp_fmt)
+        t_final = datetime.strptime(max(self.table["UT_Datetime"]), self.tstamp_fmt)
+        delta_t = (t_final - t_initial).total_seconds()
+        mid_time = (t_initial + timedelta(seconds=(delta_t/2)+0.5)).replace(microsecond=0)
         q = select(Observation).where(Observation.digest == digest)
         previous = self.session.scalars(q).one_or_none()
         if previous:
@@ -94,6 +98,7 @@ class TASLoader:
                 temperature_1=temperature,
                 temperature_meas=temperature_meas,
                 humidity_meas=humidity_meas,
+                timestamp_1 = mid_time,
                 timestamp_meas=timestamp_meas,
             )
         return result
@@ -228,6 +233,7 @@ class TASImporter:
         previous = self.session.scalars(q).one_or_none()
         if previous:
             return None
+        
         return Observation(
             identifier=obs_dict["identifier"],
             digest=obs_dict["digest"],
