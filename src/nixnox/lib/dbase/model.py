@@ -205,11 +205,7 @@ class Observer(Model):
     __table_args__ = (UniqueConstraint(name, valid_since, valid_until), {})
 
     def __repr__(self) -> str:
-        return (
-            f"dict(type={self.type!s}, name={self.name}, nickname={self.nickname}, affiliation={self.affiliation}, "
-            f"acronym={self.acronym}, website_url={self.website_url}, email={self.email}, "
-            f"valid_since={self.valid_since!s}, valid_until={self.valid_until!s}, valid_state={self.valid_state!s})"
-        )
+        return str(self.to_table())
 
     def to_table(self) -> dict:
         """To be written as Astropy's table metadata"""
@@ -253,11 +249,7 @@ class Location(Model):
     __table_args__ = (UniqueConstraint("longitude", "latitude"), {})
 
     def __repr__(self) -> str:
-        return (
-            f"Location(longitude={self.longitude!s}, latitude={self.latitude!s}, masl={self.masl!s}, coords_meas={self.coords_meas!s},"
-            f"place={self.place}, town={self.town}, sub_region={self.sub_region}, region={self.region}, country={self.country}, "
-            f"timezone={self.timezone})"
-        )
+        return str(self.to_table())
 
     def to_table(self) -> dict:
         """To be written as Astropy's table metadata"""
@@ -298,10 +290,7 @@ class Photometer(Model):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"Photometer(model={self.model!s}, name={self.name}, sensor={self.sensor!s}, "
-            f"fov={self.fov!s}, zero_point={self.zero_point!s}, comment={self.comment})"
-        )
+        return str(self.to_table())
 
     def to_table(self) -> dict:
         return dict(
@@ -354,14 +343,7 @@ class Observation(Model):
     measurements: Mapped[List["Measurement"]] = relationship(back_populates="observation")
 
     def __repr__(self) -> str:
-        return (
-            f"Observation(identifier={self.identifier!s}, digest={self.digest}, "
-            f"temperature_1={self.temperature_1!s}, temperature_2={self.temperature_2!s}, temperature_meas={self.temperature_meas.value} "
-            f"humidity_1={self.humidity_1!s}, humidity_2={self.humidity_2!s}, humidity_meas={self.humidity_meas.value}, "
-            f"timestamp_1={self.timestamp_1!s}, timestamp_2={self.timestamp_2!s}, timestamp_meas={self.timestamp_meas.value}, , "
-            f"weather_conditions={self.weather_conditions}, image_url={self.image_url}, other_observers={self.other_observers}, "
-            f"comment={self.comment})"
-        )
+        return str(self.to_table())
 
     def to_table(self) -> dict:
         return dict(

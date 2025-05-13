@@ -110,7 +110,7 @@ export:
 web:
     #!/usr/bin/env bash   
     set -exuo pipefail
-    uv run streamlit run web.py
+    uv run streamlit run web_app.py
 
 # =======================================================================
 
