@@ -14,6 +14,9 @@ from nixnox.lib import (
     ValidState,
 )
 
+# ---------------------
+# Convenience functions
+# ---------------------
 
 @st.cache_resource
 def database_models():
@@ -28,10 +31,6 @@ def database_models():
     )
 
     return Photometer, Observer, Observation, Location, Date, Time, Measurement
-
-
-conn = st.connection("nixnox_db", type="sql")
-Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
 
 
 @st.cache_data(ttl=3600)
@@ -53,6 +52,12 @@ def available_observations(_conn):
         )
         return session.execute(q).all()
 
+# ----------------------
+# Start the ball rolling
+# ----------------------
+
+conn = st.connection("nixnox_db", type="sql")
+Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
 
 st.write("**Available observations**")
 st.dataframe(available_observations(conn))
