@@ -26,9 +26,9 @@ from sqlalchemy import (
     ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
 
-from lica.sqlalchemy.model import Model
+from lica.sqlalchemy.model import metadata
 
 from lica.asyncio.photometer import Sensor
 
@@ -54,6 +54,8 @@ from .. import (
 # =================================
 # Data Model, declarative ORM style
 # =================================
+
+Model = declarative_base(metadata=metadata)
 
 # ---------------------------------------------
 # Additional conveniente types for enumerations
