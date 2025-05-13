@@ -28,7 +28,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from lica.sqlalchemy.dbase import Model
+from lica.sqlalchemy.model import Model
 
 from lica.asyncio.photometer import Sensor
 

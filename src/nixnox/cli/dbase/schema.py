@@ -17,7 +17,8 @@ from argparse import ArgumentParser, Namespace
 
 from lica.cli import execute
 from lica.sqlalchemy import sqa_logging
-from lica.sqlalchemy.dbase import engine, Model
+from lica.sqlalchemy.model import Model
+from lica.sqlalchemy.dbase import engine
 
 # --------------
 # local imports
