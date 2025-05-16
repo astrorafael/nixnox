@@ -9,7 +9,7 @@
 # System wide imports
 # -------------------
 
-
+from collections import OrderedDict
 from typing import Optional, List
 from datetime import datetime, timezone
 
@@ -210,28 +210,35 @@ class Observer(Model):
 
     __table_args__ = (
         UniqueConstraint(name, valid_since, valid_until),
-        {"extend_existing": True}, # extend_existing is for streamlit only :-(
+        {"extend_existing": True},  # extend_existing is for streamlit only :-(
     )
 
     def __repr__(self) -> str:
         return str(self.to_dict())
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
-        return dict(
-            type=self.type.value,
-            name=self.name,
-            nickname=self.nickname,
-            affiliation=self.affiliation,
-            acronym=self.acronym,
-            website_url=self.website_url,
-            email=self.email,
-            valid_since=self.valid_since.isoformat(),
-            valid_until=self.valid_until.isoformat(),
-            valid_state=self.valid_state.value,
-        )
-
-
+        r =  OrderedDict(
+            (key, self.__dict__[key])
+            for key in (
+            "type",
+            "name",
+            "nickname",
+            "affiliation",
+            "acronym",
+            "website_url",
+            "email",
+            "valid_since",
+            "valid_until",
+            "valid_state",
+        ))
+        # Patch enum & date values
+        r["type"] = self.type.value
+        r["valid_since"] = self.valid_since.isoformat()
+        r["valid_since"] = self.valid_until.isoformat()
+        r["valid_state"] = self.valid_state.value
+        return r
+ 
 class Location(Model):
     __tablename__ = "nx_location_t"
 
@@ -263,20 +270,26 @@ class Location(Model):
     def __repr__(self) -> str:
         return str(self.to_dict())
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
-        return dict(
-            longitude=self.longitude,
-            latitude=self.latitude,
-            masl=self.masl,
-            coords_meas=self.coords_meas.value,
-            place=self.place,
-            town=self.town,
-            sub_region=self.sub_region,
-            region=self.region,
-            country=self.country,
-            timezone=self.timezone,
+        r = OrderedDict(
+            (key, self.__dict__[key])
+            for key in (
+                "longitude",
+                "latitude",
+                "masl",
+                "coords_meas",
+                "place",
+                "town",
+                "sub_region",
+                "region",
+                "country",
+                "timezone",
+            )
         )
+        # Patch enum & date values
+        r["coords_meas"] = self.coords_meas.value
+        return r
 
 
 class Photometer(Model):
@@ -304,15 +317,21 @@ class Photometer(Model):
     def __repr__(self) -> str:
         return str(self.to_dict())
 
-    def to_dict(self) -> dict:
-        return dict(
-            model=self.model.value,
-            name=self.name,
-            sensor=self.sensor.value,
-            fov=self.fov,
-            zero_point=self.zero_point,
-            comment=self.comment,
+    def to_dict(self) -> OrderedDict:
+        r = OrderedDict(
+            (key, self.__dict__[key])
+            for key in (
+                "model",
+                "name",
+                "sensor",
+                "zero_point",
+                "fov",
+                "comment",
+            )
         )
+        # Patch enum & date values
+        r["model"] = self.model.value
+        return r
 
 
 class Observation(Model):
@@ -359,24 +378,32 @@ class Observation(Model):
     def __repr__(self) -> str:
         return str(self.to_dict())
 
-    def to_dict(self) -> dict:
-        return dict(
-            identifier=self.identifier,
-            digest=self.digest,
-            temperature_1=self.temperature_1,
-            temperature_2=self.temperature_2,
-            temperature_meas=self.temperature_meas.value,
-            humidity_1=self.humidity_1,
-            humidity_2=self.humidity_2,
-            humidity_meas=self.humidity_meas.value,
-            timestamp_1=self.timestamp_1,
-            timestamp_2=self.timestamp_2,
-            timestamp_meas=self.timestamp_meas.value,
-            weather_conditions=self.weather_conditions,
-            image_url=self.image_url,
-            other_observers=self.other_observers,
-            comment=self.comment,
+    def to_dict(self) -> OrderedDict:
+        r = OrderedDict(
+            (key, self.__dict__[key])
+            for key in (
+                "identifier",
+                "digest",
+                "timestamp_1",
+                "timestamp_2",
+                "timestamp_meas",
+                "temperature_1",
+                "temperature_2",
+                "temperature_meas",
+                "humidity_1",
+                "humidity_2",
+                "humidity_meas",
+                "weather_conditions",
+                "image_url",
+                "other_observers",
+                "comment",
+            )
         )
+        # Patch enum & date values
+        r["timestamp_meas"] = self.timestamp_meas.value
+        r["temperature_meas"] = self.temperature_meas.value
+        r["humidity_meas"] = self.humidity_meas.value
+        return r
 
 
 class Measurement(Model):
@@ -435,3 +462,22 @@ class Measurement(Model):
 
     def local_time(self, timezone: str) -> datetime:
         return self.utc_time().astimezone(pytz.timezone(timezone))
+
+    def to_dict(self) -> OrderedDict:
+        return OrderedDict(
+            (key, self.__dict__[key])
+            for key in (
+                "sequence",
+                "azimuth",
+                "altitude",
+                "zenital",
+                "magnitude",
+                "frequency",
+                "sensor_temp",
+                "sky_temp",
+                "longitude",
+                "latitude",
+                "masl",
+                "bat_volt",
+            )
+        )
