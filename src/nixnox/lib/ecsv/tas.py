@@ -12,7 +12,7 @@ import os
 import logging
 
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Tuple
 
 # -------------------
 # Third party imports
@@ -76,7 +76,7 @@ class TASLoader:
         self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
         self.extra_path = extra_path
 
-    def observation(self, digest: str) -> Optional[Observation]:
+    def observation(self, digest: str) -> Tuple[Observation, bool]:
         filename = self.table.meta["keywords"]["measurements_file"]
         filename, _ = os.path.splitext(filename)
         temperature = np.median(self.table["T_sens"])
@@ -88,11 +88,11 @@ class TASLoader:
         delta_t = (t_final - t_initial).total_seconds()
         mid_time = (t_initial + timedelta(seconds=(delta_t/2)+0.5)).replace(microsecond=0)
         q = select(Observation).where(Observation.digest == digest)
-        previous = self.session.scalars(q).one_or_none()
-        if previous:
-            result = None
+        obs = self.session.scalars(q).one_or_none()
+        if obs:
+            existing = True
         else:
-            result = Observation(
+            obs = Observation(
                 identifier=filename,
                 digest=digest,
                 temperature_1=temperature,
@@ -101,7 +101,8 @@ class TASLoader:
                 timestamp_1 = mid_time,
                 timestamp_meas=timestamp_meas,
             )
-        return result
+            existing = False
+        return obs, existing
 
     def photometer(self) -> Photometer:
         name = self.table.meta["keywords"]["photometer"]

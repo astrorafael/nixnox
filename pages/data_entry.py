@@ -1,13 +1,20 @@
 import streamlit as st
+from nixnox.lib.ecsv import loader, AlreadyExistsError
 
-st.title("Generador de Mapa de Brillo del Cielo en Proyección Polar")
+# Database connection
+conn = st.connection("nixnox_db", type="sql")
+
+st.title("Subir ficheros TAS a la base de datos")
 
 # === FORMULARIO DEL USUARIO ===
 st.sidebar.header("Datos del usuario")
-nombre = st.sidebar.text_input("Nombre")
-apellidos = st.sidebar.text_input("Apellidos")
-institucion = st.sidebar.text_input("Institución")
-latitud = st.sidebar.text_input("Latitud del sitio (opcional)")
-longitud = st.sidebar.text_input("Longitud del sitio (opcional)")
-alojamientos = st.sidebar.text_area("Alojamientos cercanos (opcional)")
-archivo = st.sidebar.file_uploader("Sube tu archivo .ecsv", type=["ecsv", "csv"])
+data = st.sidebar.file_uploader("Sube tu archivo .ecsv", type=["ecsv", "csv"])
+if data:
+    with conn.session as session:
+        try:
+            observation = loader(session, data)
+        except AlreadyExistsError as e:
+        	observation = e.args[0]
+        	st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
+        else:
+            st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")

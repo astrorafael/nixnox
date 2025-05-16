@@ -13,7 +13,7 @@ import logging
 import hashlib
 import os
 
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 # -------------------
 # Third party imports
@@ -41,18 +41,28 @@ from .sqm import SQMLoader
 log = logging.getLogger(__name__.split(".")[-1])
 
 
-def loader(session: Session, file_obj: BinaryIO, **kwargs) -> None:
+class AlreadyExistsError(RuntimeError):
+    '''Item already exists in database'''
+    def __str__(self):
+        s = self.__doc__
+        if self.args:
+            s = '{1} {0}'.format(s, self.args[0])
+        s = '{0}.'.format(s)
+        return s
+
+def loader(session: Session, file_obj: BinaryIO, **kwargs) -> Optional[Observation]:
+    observation = None
     digest = hashlib.md5(file_obj.read()).hexdigest()
     file_obj.seek(0)  # Rewind to conver it to AstroPy Table
     table = astropy.io.ascii.read(file_obj, format="ecsv")
     name = table.meta["keywords"]["photometer"]
     with session.begin():
         subloader = (
-            TASLoader(session, table, kwargs["extra_path"]) if name.startswith("TAS") else SQMLoader(session, table)
+            TASLoader(session, table, kwargs.get("extra_path")) if name.startswith("TAS") else SQMLoader(session, table)
         )
-        observation = subloader.observation(digest)
-        if observation is None:
-            raise RuntimeError("Observation already exists. Abort loading")
+        observation, existing = subloader.observation(digest)
+        if existing:
+            raise AlreadyExistsError(observation)
         photometer = subloader.photometer()
         location = subloader.location()
         observer = subloader.observer()
@@ -71,17 +81,20 @@ def loader(session: Session, file_obj: BinaryIO, **kwargs) -> None:
         except Exception as e:
             log.error(e)
             log.error("Trying to reload the same observation file?")
+        finally:
+            return observation
 
 
-def database_import(session: Session, file_obj: BinaryIO) -> None:
+def database_import(session: Session, file_obj: BinaryIO) -> Optional[Observation]:
     # THIS MUST BE REVIEWED
+    observation = None
     table = astropy.io.ascii.read(file_obj, format="ecsv")
     log.info(table.meta)
     with session.begin():
         importer = TASImporter(session, table)
-        observation = importer.observation()
-        if observation is None:
-            raise RuntimeError("Observation already exists. Abort import")
+        observation, existing = importer.observation()
+        if existing:
+            raise AlreadyExistsError(observation)
         photometer = importer.photometer()
         location = importer.location()
         observer = importer.observer()
@@ -100,6 +113,8 @@ def database_import(session: Session, file_obj: BinaryIO) -> None:
         except Exception as e:
             log.error(e)
             log.error("Trying to reload the same observation file?")
+        finally:
+            return observation
 
 
 

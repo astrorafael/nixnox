@@ -38,6 +38,10 @@ def available_observations(_conn):
         return session.execute(q).all()
 
 
+def foo() -> None:
+    row = st.session_state.Pepe.selection.rows[0]
+    observation_id = st.session_state.obs_list[row][0]
+
 # ----------------------
 # Start the ball rolling
 # ----------------------
@@ -45,5 +49,14 @@ def available_observations(_conn):
 conn = st.connection("nixnox_db", type="sql")
 # Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
 
-st.write("**Available observations**")
-st.dataframe(available_observations(conn))
+if "obs_list" not in st.session_state:
+    st.session_state.obs_list = available_observations(conn)
+
+st.title("**Available observations**")
+event = st.dataframe(
+    st.session_state.obs_list, 
+    key="Pepe",
+    hide_index=True,
+    on_select=foo,
+    selection_mode="single-row"
+)
