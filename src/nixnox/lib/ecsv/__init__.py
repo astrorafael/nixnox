@@ -127,7 +127,7 @@ def _recall_observation(session: Session,  observation: Observation) -> Table:
     observer = measurements[0].observer
     photometer = measurements[0].photometer
     if photometer.model == PhotometerModel.TAS:
-        table = TASExporter().to_table(
+        table = TASExporter().to_dict(
                     photometer, observation, location, observer, measurements
                 )
     else:

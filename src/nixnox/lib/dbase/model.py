@@ -214,9 +214,9 @@ class Observer(Model):
     )
 
     def __repr__(self) -> str:
-        return str(self.to_table())
+        return str(self.to_dict())
 
-    def to_table(self) -> dict:
+    def to_dict(self) -> dict:
         """To be written as Astropy's table metadata"""
         return dict(
             type=self.type.value,
@@ -261,9 +261,9 @@ class Location(Model):
     )
 
     def __repr__(self) -> str:
-        return str(self.to_table())
+        return str(self.to_dict())
 
-    def to_table(self) -> dict:
+    def to_dict(self) -> dict:
         """To be written as Astropy's table metadata"""
         return dict(
             longitude=self.longitude,
@@ -302,9 +302,9 @@ class Photometer(Model):
     )
 
     def __repr__(self) -> str:
-        return str(self.to_table())
+        return str(self.to_dict())
 
-    def to_table(self) -> dict:
+    def to_dict(self) -> dict:
         return dict(
             model=self.model.value,
             name=self.name,
@@ -357,9 +357,9 @@ class Observation(Model):
     __table_args__ = {"extend_existing": True}  # This is for streamlit only :-(
 
     def __repr__(self) -> str:
-        return str(self.to_table())
+        return str(self.to_dict())
 
-    def to_table(self) -> dict:
+    def to_dict(self) -> dict:
         return dict(
             identifier=self.identifier,
             digest=self.digest,

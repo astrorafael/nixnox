@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 from sqlalchemy import select
 
@@ -36,10 +37,10 @@ def observation_details(_conn, obs_tag: str):
 
 with st.container(border=True):
     observation, observer, location, photometer = observation_details(conn, st.session_state.obs_tag)
-    st.dataframe(zip(observation.to_table()))
-
-    st.write(location)
-    st.write(observer)
-    st.write(photometer)
+    df = pd.DataFrame(observation.to_dict().items(), columns=("Name", "Value"))
+    st.dataframe(pd.DataFrame(observation.to_dict().items(), columns=("Name", "Value")))
+    st.dataframe(pd.DataFrame(location.to_dict().items(), columns=("Name", "Value")))
+    st.dataframe(pd.DataFrame(observer.to_dict().items(), columns=("Name", "Value")))
+    st.dataframe(pd.DataFrame(photometer.to_dict().items(), columns=("Name", "Value")))
 
    

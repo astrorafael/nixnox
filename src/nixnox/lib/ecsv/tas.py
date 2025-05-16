@@ -385,8 +385,8 @@ class TASExporter:
             "VBat",
         )
         table = Table(rows=data_rows, names=header)
-        table.meta["Observer"] = observer.to_table()
-        table.meta["Location"] = location.to_table()
-        table.meta["Photometer"] = photometer.to_table()
-        table.meta["Observation"] = observation.to_table()
+        table.meta["Observer"] = observer.to_dict()
+        table.meta["Location"] = location.to_dict()
+        table.meta["Photometer"] = photometer.to_dict()
+        table.meta["Observation"] = observation.to_dict()
         return table
