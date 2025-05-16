@@ -40,7 +40,7 @@ def available_observations(_conn):
 
 def foo() -> None:
     row = st.session_state.Pepe.selection.rows[0]
-    observation_id = st.session_state.obs_list[row][0]
+    st.session_state.obs_tag = st.session_state.obs_list[row][0]
 
 # ----------------------
 # Start the ball rolling
