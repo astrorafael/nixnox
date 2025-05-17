@@ -1,55 +1,23 @@
 import streamlit as st
 import pandas as pd
 
-from sqlalchemy import select
+import nixnox.web.dbase as db
 
-
-from nixnox.lib.dbase.model import (
-    Photometer,
-    Observer,
-    Observation,
-    Location,
-    Measurement,
-)
 
 conn = st.connection("nixnox_db", type="sql")
 
 @st.cache_data(ttl=60)
-def db_observation_details(_conn, obs_tag: str):
+def get_observation_details(_conn, obs_tag: str):
     with _conn.session as session:
-        q = (
-            select(
-                Observation,
-                Observer,
-                Location,
-                Photometer,
-            )
-            .select_from(Measurement)
-            .distinct()
-            .join(Observation, Measurement.obs_id == Observation.obs_id)
-            .join(Location, Measurement.observer_id == Location.location_id)
-            .join(Observer, Measurement.observer_id == Observer.observer_id)
-            .join(Photometer, Measurement.phot_id == Photometer.phot_id)
-            .where(Observation.identifier == obs_tag)
-        )
-        return session.execute(q).one()
+        return db.obs_details(session, obs_tag)
 
 @st.cache_data(ttl=60)
-def db_measurements(_conn, obs_tag: str):
+def get_measurements(_conn, obs_tag: str):
     with _conn.session as session:
-        q = (
-            select(Measurement)
-            .select_from(Measurement)
-            .join(Observation, Measurement.obs_id == Observation.obs_id)
-            .join(Location, Measurement.observer_id == Location.location_id)
-            .join(Observer, Measurement.observer_id == Observer.observer_id)
-            .join(Photometer, Measurement.phot_id == Photometer.phot_id)
-            .where(Observation.identifier == obs_tag)
-        )
-        return session.scalars(q).all()
+        return db.obs_measurements(session, obs_tag)
 
-observation, observer, location, photometer = db_observation_details(conn, st.session_state.obs_tag)
-measurements = db_measurements(conn, st.session_state.obs_tag)
+observation, observer, location, photometer = get_observation_details(conn, st.session_state.obs_tag)
+measurements = get_measurements(conn, st.session_state.obs_tag)
 
 c1, c2 = st.columns(2)
 with c1:

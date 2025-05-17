@@ -1,6 +1,6 @@
 import streamlit as st
-from nixnox.lib.ecsv import loader, AlreadyExistsError
 
+import nixnox.lib.ecsv as nx
 # Database connection
 conn = st.connection("nixnox_db", type="sql")
 
@@ -12,8 +12,8 @@ data = st.sidebar.file_uploader("Sube tu archivo .ecsv", type=["ecsv", "csv"])
 if data:
     with conn.session as session:
         try:
-            observation = loader(session, data)
-        except AlreadyExistsError as e:
+            observation = nx.loader(session, data)
+        except nx.AlreadyExistsError as e:
         	observation = e.args[0]
         	st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
         else:
