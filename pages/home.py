@@ -12,6 +12,12 @@ def obs_summary(_conn):
         return db.obs_summary(session)
 
 
+@st.cache_data(ttl=60)
+def get_observation_as_ecsv(_conn, obs_tag: str):
+    with _conn.session as session:
+        return db.obs_export(session, obs_tag).getvalue()
+
+
 def selected_obs() -> None:
     row = st.session_state.Observation.selection.rows[0]
     st.session_state.obs_tag = st.session_state.obs_list[row][0]
@@ -34,3 +40,14 @@ event = st.dataframe(
     on_select=selected_obs,
     selection_mode="single-row"
 )
+
+if "obs_tag" in st.session_state: 
+    obs_tag = st.session_state.obs_tag
+    ecsv =  get_observation_as_ecsv(conn, obs_tag)
+    st.download_button(
+         label=f"Download ECSV: *{obs_tag}*",
+         data=ecsv,
+         file_name=f"{obs_tag}.ecsv",
+         mime="text/csv",
+         icon=":material/download:",
+     )
