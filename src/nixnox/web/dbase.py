@@ -9,6 +9,7 @@
 # System wide imports
 # -------------------
 
+from io import StringIO
 
 # =====================
 # Third party libraries
@@ -20,6 +21,8 @@ from sqlalchemy import select
 # Local imports
 # -------------
 
+from ..lib import PhotometerModel
+
 from ..lib.dbase.model import (
     Photometer,
     Observer,
@@ -28,6 +31,8 @@ from ..lib.dbase.model import (
     Measurement,
     Date,
 )
+
+from ..lib.ecsv.tas import TASExporter
 
 def obs_summary(session):
     q = (
@@ -74,3 +79,22 @@ def obs_measurements(session, obs_tag: str):
         .where(Observation.identifier == obs_tag)
     )
     return session.scalars(q).all()
+
+
+def obs_export(session, obs_tag) -> StringIO:
+    q = select(Observation).where(Observation.identifier == obs_tag)
+    observation = session.scalars(q).one_or_none()
+    measurements = observation.measurements
+    location = measurements[0].location
+    observer = measurements[0].observer
+    photometer = measurements[0].photometer
+    if photometer.model == PhotometerModel.TAS:
+        table = TASExporter().to_table(
+                    photometer, observation, location, observer, measurements
+                )
+    else:
+        raise NotImplementedError
+    output = StringIO()
+    table.write(output, delimiter=",", format="ascii.ecsv", overwrite=True)
+    return output
+

@@ -12,8 +12,8 @@ def obs_summary(_conn):
         return db.obs_summary(session)
 
 
-def foo() -> None:
-    row = st.session_state.Pepe.selection.rows[0]
+def selected_obs() -> None:
+    row = st.session_state.Observation.selection.rows[0]
     st.session_state.obs_tag = st.session_state.obs_list[row][0]
 
 # ----------------------
@@ -29,8 +29,8 @@ if "obs_list" not in st.session_state:
 st.title("**Available observations**")
 event = st.dataframe(
     st.session_state.obs_list, 
-    key="Pepe",
+    key="Observation",
     hide_index=True,
-    on_select=foo,
+    on_select=selected_obs,
     selection_mode="single-row"
 )

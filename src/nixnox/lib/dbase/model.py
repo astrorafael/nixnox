@@ -331,6 +331,7 @@ class Photometer(Model):
         )
         # Patch enum & date values
         r["model"] = self.model.value
+        r["sensor"] = self.sensor.value
         return r
 
 

@@ -33,6 +33,10 @@ pg = st.navigation(
             title="Upload observation file",
             icon=":material/add_circle:",
         ),
+        st.Page(
+            os.path.join("pages", "download.py"),
+            title="Download observation as ECSV file",
+        ),
         
     ]
 )
