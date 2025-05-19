@@ -4,7 +4,6 @@
 # See the LICENSE file for details
 # ----------------------------------------------------------------------
 
-
 # --------------------
 # System wide imports
 # -------------------
@@ -34,14 +33,15 @@ from ..lib.dbase.model import (
 
 from ..lib.ecsv.tas import TASExporter
 
+
 def obs_summary(session):
     q = (
         select(
-                Observation.identifier.label("tag"),
-                Observation.timestamp_1.label("date"),
-                Observer.name,
-                Location.place,
-                Photometer.name.label("photometer"),
+            Observation.identifier.label("tag"),
+            Observation.timestamp_1.label("date"),
+            Observer.name,
+            Location.place,
+            Photometer.name.label("photometer"),
         )
         .distinct()
         .select_from(Measurement)
@@ -56,7 +56,7 @@ def obs_summary(session):
 
 def obs_details(session, obs_tag: str):
     q = (
-        select(Observation,Observer,Location,Photometer)
+        select(Observation, Observer, Location, Photometer)
         .select_from(Measurement)
         .distinct()
         .join(Observation, Measurement.obs_id == Observation.obs_id)
@@ -64,7 +64,7 @@ def obs_details(session, obs_tag: str):
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
         .where(Observation.identifier == obs_tag)
-        )
+    )
     return session.execute(q).one()
 
 
@@ -81,7 +81,7 @@ def obs_measurements(session, obs_tag: str):
     return session.scalars(q).all()
 
 
-def obs_export(session, obs_tag) -> StringIO:
+def obs_export(session, obs_tag: str) -> StringIO:
     q = select(Observation).where(Observation.identifier == obs_tag)
     observation = session.scalars(q).one_or_none()
     measurements = observation.measurements
@@ -89,12 +89,9 @@ def obs_export(session, obs_tag) -> StringIO:
     observer = measurements[0].observer
     photometer = measurements[0].photometer
     if photometer.model == PhotometerModel.TAS:
-        table = TASExporter().to_table(
-                    photometer, observation, location, observer, measurements
-                )
+        table = TASExporter().to_table(photometer, observation, location, observer, measurements)
     else:
         raise NotImplementedError
     output = StringIO()
     table.write(output, delimiter=",", format="ascii.ecsv", overwrite=True)
     return output
-

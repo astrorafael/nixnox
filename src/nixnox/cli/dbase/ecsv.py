@@ -30,7 +30,7 @@ from ... import __version__
 from ..util import parser as prs
 
 from ...lib.ecsv import (
-    loader,
+    uploader,
     database_import,
     database_export,
 )
@@ -88,7 +88,7 @@ def cli_obsload_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        loader(session, file_obj, extra_path=args.text)
+        uploader(session, file_obj, extra_path=args.text)
 
 
 def add_dbimport_args(parser: ArgumentParser) -> None:
