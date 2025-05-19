@@ -18,11 +18,9 @@ import nixnox.lib.ecsv as nx
 # Database connection
 conn = st.connection("nixnox_db", type="sql")
 
-st.title("Subir ficheros TAS a la base de datos")
+st.title("Upload TAS ECSV files to database")
 
-# === FORMULARIO DEL USUARIO ===
-st.sidebar.header("Datos del usuario")
-data = st.sidebar.file_uploader("Sube tu archivo .ecsv", type=["ecsv", "csv"])
+data = st.file_uploader("*ECSV File only!*", type=["ecsv"])
 if data:
     with conn.session as session:
         try:

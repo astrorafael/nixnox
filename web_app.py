@@ -29,7 +29,7 @@ pg = st.navigation(
             title="Observation plot",
         ),
         st.Page(
-            os.path.join("pages", "data_entry.py"),
+            os.path.join("pages", "upload.py"),
             title="Upload observation file",
             icon=":material/add_circle:",
         ),
