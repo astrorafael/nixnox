@@ -339,7 +339,7 @@ class Observation(Model):
 
     obs_id: Mapped[int] = mapped_column(primary_key=True)
     # Identifier is the original filename, without path or extension
-    identifier: Mapped[str] = mapped_column(String(128))
+    identifier: Mapped[str] = mapped_column(String(128), unique=True)
     # MD5 File digest to avoid duplicates
     digest: Mapped[str] = mapped_column(String(64), unique=True)
     # Temperature in Celsius, see temperature_meas for meaning

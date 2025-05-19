@@ -1,8 +1,22 @@
-import streamlit as st
-import pandas as pd
+# ----------------
+# Standard library
+# ----------------
 
+# ---------
+# STREAMLIT
+# ---------
+import streamlit as st
+
+# -------------------
+# Third party library
+# -------------------
+
+import pandas as pd
 import nixnox.web.dbase as db
 
+# ============
+# PAGE OBJECTS
+# ============
 
 conn = st.connection("nixnox_db", type="sql")
 
@@ -18,6 +32,10 @@ def get_measurements(_conn, obs_tag: str):
 
 observation, observer, location, photometer = get_observation_details(conn, st.session_state.obs_tag)
 measurements = get_measurements(conn, st.session_state.obs_tag)
+
+# ==============
+# PAGE RENDERING
+# ==============
 
 c1, c2 = st.columns(2)
 with c1:

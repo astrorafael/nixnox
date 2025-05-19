@@ -1,6 +1,20 @@
+# ---------------
+# Standard library
+# ---------------
+
+# ---------
+# STREAMLIT
+# ---------
+
 import streamlit as st
 
+# ---------------
+# Other libraries
+# ---------------
+
 import nixnox.lib.ecsv as nx
+
+
 # Database connection
 conn = st.connection("nixnox_db", type="sql")
 
