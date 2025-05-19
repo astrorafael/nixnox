@@ -19,4 +19,5 @@ _version.py
 *.bak
 *.log
 *.txt
+!requirements.txt
 test*.py

@@ -18,7 +18,7 @@ import nixnox.lib.ecsv as nx
 # Database connection
 conn = st.connection("nixnox_db", type="sql")
 
-st.title("Upload TAS ECSV files to database")
+st.title("Upload TAS files to database")
 
 data = st.file_uploader("*ECSV File only!*", type=["ecsv"])
 if data:

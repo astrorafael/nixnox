@@ -28,6 +28,10 @@ build:
     rm -fr dist/*
     uv build
 
+# Generate a requirements file
+requirements:
+    uv pip compile pyproject.toml -o requirements.txt
+
 # Publish the package to PyPi
 publish pkg="zptess": build
     twine upload -r pypi dist/*
