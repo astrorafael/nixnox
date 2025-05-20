@@ -45,8 +45,6 @@ class Magnitude(float, Enum):
     MEDIUM_DARK = 18.6
     SUPER_DARK = 22.0
     BLACK = 24.0
-    MIN_CMAP = 15.0
-  
 
 class Azimuth(Enum):
     N = 0
