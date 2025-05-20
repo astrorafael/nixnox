@@ -33,50 +33,48 @@ def get_measurements(_conn, obs_tag: str):
         return db.obs_measurements(session, obs_tag)
 
 
-observation, observer, location, photometer = get_observation_details(
-    conn, st.session_state.obs_tag
-)
-measurements = get_measurements(conn, st.session_state.obs_tag)
+st.write("## Night Sky Brightness Plot")
+if "obs_tag" not in st.session_state:
+    st.warning("### Please, select an observation in the home page")
+else:
+    obs_tag = st.session_state.obs_tag
+    observation, observer, location, photometer = get_observation_details(conn, obs_tag)
+    measurements = get_measurements(conn, obs_tag)
 
-# ==============
-# PAGE RENDERING
-# ==============
-
-c1, c2 = st.columns(2)
-with c1:
-    st.write("### Observer")
-    st.dataframe(
-        pd.DataFrame(
-            observer.to_dict().items(),
-            columns=("Name", "Value"),
-        ),
-        hide_index=True,
-    )
-    st.write("### Location")
-    st.dataframe(
-        pd.DataFrame(
-            location.to_dict().items(),
-            columns=("Name", "Value"),
-        ),
-        hide_index=True,
-    )
-with c2:
-    st.write("### Observation")
-    st.dataframe(
-        pd.DataFrame(
-            observation.to_dict().items(),
-            columns=("Name", "Value"),
-        ),
-        hide_index=True,
-    )
-    st.write("### Photometer")
-    st.dataframe(
-        pd.DataFrame(
-            photometer.to_dict().items(),
-            columns=("Name", "Value"),
-        ),
-        hide_index=True,
-    )
-
-st.write("## Measurements")
-st.dataframe([m.to_dict() for m in measurements])
+    c1, c2 = st.columns(2)
+    with c1:
+        st.write("### Observer")
+        st.dataframe(
+            pd.DataFrame(
+                observer.to_dict().items(),
+                columns=("Name", "Value"),
+            ),
+            hide_index=True,
+        )
+        st.write("### Location")
+        st.dataframe(
+            pd.DataFrame(
+                location.to_dict().items(),
+                columns=("Name", "Value"),
+            ),
+            hide_index=True,
+        )
+    with c2:
+        st.write("### Observation")
+        st.dataframe(
+            pd.DataFrame(
+                observation.to_dict().items(),
+                columns=("Name", "Value"),
+            ),
+            hide_index=True,
+        )
+        st.write("### Photometer")
+        st.dataframe(
+            pd.DataFrame(
+                photometer.to_dict().items(),
+                columns=("Name", "Value"),
+            ),
+            hide_index=True,
+        )
+    st.write("## Measurements")
+    st.dataframe([m.to_dict() for m in measurements])

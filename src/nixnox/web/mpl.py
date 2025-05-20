@@ -146,7 +146,7 @@ def plot_interpolated(
     dark_mag: float = Magnitude.BRIGHT,  # Threshold magnitude for brightness cmap steps
     thres_mag: float = Magnitude.MEDIUM_DARK,  # Threshold magnitude for brightness cmap steps
 ) -> Figure:
-    fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(9, 10))
+    fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(9, 12))
     ax.set_theta_zero_location(Azimuth.N.name)  # Set the north to the north
     ax.set_theta_direction(-1)
     ax.set_xticks(np.deg2rad([e.value for e in Azimuth]))
