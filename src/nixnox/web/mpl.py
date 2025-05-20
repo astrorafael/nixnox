@@ -9,6 +9,7 @@
 # System wide imports
 # -------------------
 
+from enum import Enum
 from typing import Tuple
 
 # =====================
@@ -36,15 +37,37 @@ from streamlit.logger import get_logger
 
 log = get_logger(__name__)
 
+
+class Magnitude(float, Enum):
+    SUPER_BRIGHT = 8.0
+    BRIGHT = 10
+    MODERATE = 17
+    MEDIUM_DARK = 18.6
+    SUPER_DARK = 22.0
+    BLACK = 24.0
+    MIN_CMAP = 15.0
+  
+
+class Azimuth(Enum):
+    N = 0
+    NE = 45
+    E = 90
+    SE = 135
+    S = 180
+    SW = 225
+    W = 270
+    NW = 315
+
+
 # -------------
 # Local imports
 # -------------
 
 
 def interpolate(
-    azimuths: ArrayLike,
-    zenitals: ArrayLike,
-    magnitudes: ArrayLike,
+    azimuths: ArrayLike,  # in degrees
+    zenitals: ArrayLike,  # in degrees
+    zvalues: ArrayLike,  # can be magnitudes or temperatures
     grid_step: float = 1.0,  # in degrees
 ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Interpolate magnitudes across the azimuth, zenital axis"""
@@ -58,17 +81,15 @@ def interpolate(
     extended_azi = np.ravel([azimuths - 360, azimuths, azimuths + 360])
     # and duplicate data along the extended azimuth axes
     extended_zen = np.ravel([zenitals, zenitals, zenitals])
-    extended_mag = np.ravel([magnitudes, magnitudes, magnitudes])
+    extended_zval = np.ravel([zvalues, zvalues, zvalues])
     # Interpolated magnitudes for the grid points
-    interpolated_mag = griddata(
-        (extended_zen, extended_azi), extended_mag, (zen_grid, azi_grid), method="cubic"
+    interpolated_zval = griddata(
+        (extended_zen, extended_azi), extended_zval, (zen_grid, azi_grid), method="cubic"
     )
-    interpolated_mag = np.array(
-        interpolated_mag
-    )  # INTERPOLATED magnitudes but array instead of meshgrid
-    interpolated_mag = interpolated_mag.reshape(len(azi_axis), len(zen_axis))
-    log.info("interpolated_mag = %s", interpolated_mag.shape)
-    return np.radians(azi_grid), zen_grid, interpolated_mag
+    # INTERPOLATED zvalues as array instead of meshgrid
+    interpolated_zval = np.array(interpolated_zval).reshape(len(azi_axis), len(zen_axis))
+    log.info("interpolated_zval = %s", interpolated_zval.shape)
+    return np.radians(azi_grid), zen_grid, interpolated_zval
 
 
 def colormap() -> LinearSegmentedColormap:
@@ -90,10 +111,10 @@ def plot_non_interpolated(
     nticks: int,
 ) -> Figure:
     fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(9, 10))
-    ax.set_theta_zero_location("N")  # Set the north to the north
+    ax.set_theta_zero_location(Azimuth.N.name)  # Set the north to the north
     ax.set_theta_direction(-1)
-    ax.set_xticks(np.deg2rad([0, 45, 90, 135, 180, 225, 270, 315]))
-    ax.set_xticklabels(["N", "NE", "E", "SE", "S", "SW", "W", "NW"], fontdict={"fontsize": 16})
+    ax.set_xticks(np.deg2rad([e.value for e in Azimuth]))
+    ax.set_xticklabels([e.name for e in Azimuth], fontdict={"fontsize": 14})
     ax.tick_params(pad=1.2)
     cmap = colormap()
     cax = ax.scatter(
@@ -124,30 +145,29 @@ def plot_interpolated(
     min_mag: float,
     max_mag: float,
     nticks: int,  # Number of xticks labels to avoid crowding
-    dark_mag: float = 10,  # Threshold magnitude for brightness cmap steps
-    thres_mag: float = 18.6,  # Threshold magnitude for brightness cmap steps
+    dark_mag: float = Magnitude.BRIGHT,  # Threshold magnitude for brightness cmap steps
+    thres_mag: float = Magnitude.MEDIUM_DARK,  # Threshold magnitude for brightness cmap steps
 ) -> Figure:
     fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(9, 10))
-    ax.set_theta_zero_location("N")  # Set the north to the north
+    ax.set_theta_zero_location(Azimuth.N.name)  # Set the north to the north
     ax.set_theta_direction(-1)
-    ax.set_xticks(np.deg2rad([0, 45, 90, 135, 180, 225, 270, 315]))
-    ax.set_xticklabels(["N", "NE", "E", "SE", "S", "SW", "W", "NW"], fontdict={"fontsize": 16})
+    ax.set_xticks(np.deg2rad([e.value for e in Azimuth]))
+    ax.set_xticklabels([e.name for e in Azimuth], fontdict={"fontsize": 14})
     ax.tick_params(pad=1.2)
     cmap = colormap()
     # Plot the TAS data as tiny red dots for reference
     ax.scatter(np.radians(azimuths), zenitals, c="red", zorder=2, s=8)
-    azi_grid, zen_grid, interp_mag = interpolate(azimuths, zenitals, magnitudes)
+    azi_grid, zen_grid, interp_mag = interpolate(azimuths, zenitals, zvalues=magnitudes)
     m_step_1 = 0.2  # 0.2 initial step in contour levels
     m_step_2 = 0.4
     if np.max(magnitudes) > dark_mag:  # 21 dark place
-        log.info("Dark place ...")
         lev_c_b = np.arange(thres_mag, max_mag + m_step_1 + 0.1, m_step_1)
         # more width between contour line for lower magnitudes
         lev_c_a = np.arange(min_mag, thres_mag, m_step_2)
         lev_f = np.arange(min_mag, max_mag + m_step_1 + 0.1, m_step_2)
     else:
         lev_f = np.arange(min_mag, max_mag, m_step_1)  # visible contour lines
-    cb_ticks = np.linspace(min_mag, max_mag, num=nticks, endpoint=True)
+    cb_ticks = np.round(np.linspace(min_mag, max_mag, num=nticks, endpoint=True), 1)
     cax = ax.contourf(
         azi_grid,
         zen_grid,
@@ -176,7 +196,7 @@ def plot_interpolated(
         fontsize="medium",
     )
     # extra contour lines over 22 mag/arcsec2
-    high_levels = np.arange(22.0, 24, m_step_2)
+    high_levels = np.arange(Magnitude.SUPER_DARK, Magnitude.BLACK, m_step_2)
     cax_lines = ax.contour(cax, colors="k", levels=high_levels, linewidths=1)
     ax.clabel(
         cax_lines,
@@ -186,8 +206,8 @@ def plot_interpolated(
         rightside_up=True,
         fontsize="medium",
     )
-    # extra contour lines bellow 17 mag/arcsec2
-    low_levels = np.arange(8.0, 17.0, 1)
+    # extra contour lines below 17 mag/arcsec2
+    low_levels = np.arange(Magnitude.SUPER_BRIGHT, Magnitude.MODERATE, 1)
     cax_lines = ax.contour(cax, colors="k", levels=low_levels, linewidths=0.5)
     ax.clabel(
         cax_lines,
@@ -212,8 +232,8 @@ def plot(
     azimuths: ArrayLike,
     zenitals: ArrayLike,
     magnitudes: ArrayLike,
-    min_mag: float = 15,
-    max_mag: float = 25,
+    min_mag: float = Magnitude.MODERATE,
+    max_mag: float = Magnitude.SUPER_DARK,
     nticks: int = 12,  # Number of xticks labels to avoid crowding
     thr_mag: float = 10,  # Threshold magnitude for brightness cmap steps
     interpolated: bool = True,
