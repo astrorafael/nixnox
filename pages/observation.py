@@ -33,9 +33,9 @@ def get_measurements(_conn, obs_tag: str):
         return db.obs_measurements(session, obs_tag)
 
 
-st.write("## Night Sky Brightness Plot")
+st.write("## Observation Details")
 if "obs_tag" not in st.session_state:
-    st.warning("### Please, select an observation in the home page")
+    st.warning("### Please, select an observation in the home page", icon="⚠️")
 else:
     obs_tag = st.session_state.obs_tag
     observation, observer, location, photometer = get_observation_details(conn, obs_tag)
