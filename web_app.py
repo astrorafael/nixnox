@@ -29,6 +29,10 @@ pg = st.navigation(
             title="Observation plot",
         ),
         st.Page(
+            os.path.join("pages", "plot_alex.py"),
+            title="Plot Alex",
+        ),
+        st.Page(
             os.path.join("pages", "upload.py"),
             title="Upload observation file",
             icon=":material/add_circle:",
