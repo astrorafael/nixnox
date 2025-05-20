@@ -9,6 +9,7 @@
 # System wide imports
 # -------------------
 
+from typing import Tuple
 
 # =====================
 # Third party libraries
@@ -45,7 +46,7 @@ def interpolate(
     zenitals: ArrayLike,
     magnitudes: ArrayLike,
     grid_step: float = 1.0,  # in degrees
-) -> None:
+) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
     """Interpolate magnitudes across the azimuth, zenital axis"""
 
     # Generate a finer grid in zenital and azimuth axis (in degrees)
@@ -53,7 +54,6 @@ def interpolate(
     azi_axis = np.arange(0, 360 + grid_step, grid_step)
     # prepare the bidimensional grid for interpolation
     zen_grid, azi_grid = np.meshgrid(zen_axis, azi_axis)
-    r, theta = np.meshgrid(zen_axis, np.radians(azi_axis))
     # Extend the Azimuths array to -360 to +360 circles
     extended_azi = np.ravel([azimuths - 360, azimuths, azimuths + 360])
     # and duplicate data along the extended azimuth axes
@@ -68,8 +68,7 @@ def interpolate(
     )  # INTERPOLATED magnitudes but array instead of meshgrid
     interpolated_mag = interpolated_mag.reshape(len(azi_axis), len(zen_axis))
     log.info("interpolated_mag = %s", interpolated_mag.shape)
-    # Theta is the interpolated azimuth index, and r is the interpolated zenital distance index
-    return theta, r, interpolated_mag
+    return np.radians(azi_grid), zen_grid, interpolated_mag
 
 
 def colormap() -> LinearSegmentedColormap:
@@ -137,7 +136,7 @@ def plot_interpolated(
     cmap = colormap()
     # Plot the TAS data as tiny red dots for reference
     ax.scatter(np.radians(azimuths), zenitals, c="red", zorder=2, s=8)
-    interp_az, interp_ze, interp_mag = interpolate(azimuths, zenitals, magnitudes)
+    azi_grid, zen_grid, interp_mag = interpolate(azimuths, zenitals, magnitudes)
     m_step_1 = 0.2  # 0.2 initial step in contour levels
     m_step_2 = 0.4
     if np.max(magnitudes) > dark_mag:  # 21 dark place
@@ -145,17 +144,15 @@ def plot_interpolated(
         lev_c_b = np.arange(thres_mag, max_mag + m_step_1 + 0.1, m_step_1)
         # more width between contour line for lower magnitudes
         lev_c_a = np.arange(min_mag, thres_mag, m_step_2)
-        lev_c = np.concatenate([lev_c_a, lev_c_b])
         lev_f = np.arange(min_mag, max_mag + m_step_1 + 0.1, m_step_2)
     else:
-        lev_c = np.arange(min_mag, max_mag, m_step_1)  # visible contour lines
-        lev_f = lev_c
-    lev_f_ticks = np.linspace(min_mag, max_mag, num=nticks, endpoint=True)
+        lev_f = np.arange(min_mag, max_mag, m_step_1)  # visible contour lines
+    cb_ticks = np.linspace(min_mag, max_mag, num=nticks, endpoint=True)
     cax = ax.contourf(
-        interp_az,
-        interp_ze,
+        azi_grid,
+        zen_grid,
         interp_mag,
-        lev_f,
+        levels=lev_f,
         cmap=cmap,
         vmin=min_mag,
         vmax=max_mag,
@@ -201,7 +198,7 @@ def plot_interpolated(
         fontsize="small",
     )
     # Draw the color bar
-    cb = fig.colorbar(cax, orientation="horizontal", fraction=0.35, ticks=lev_f_ticks, pad=0.08)
+    cb = fig.colorbar(cax, orientation="horizontal", fraction=0.35, ticks=cb_ticks, pad=0.08)
     cb.set_label("Sky Brightness [mag/arcsec$^2$]", fontsize=14)
     cb.ax.tick_params(labelsize=12)
     # Cut the axes to fit data
