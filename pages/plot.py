@@ -39,9 +39,11 @@ observation, observer, location, photometer = get_observation_details(conn, obs_
 measurements = get_measurements(conn, st.session_state.obs_tag)
 measurements = Table([m.to_dict() for m in measurements])
 
+
 @st.cache_data(ttl=60)
 def plot(tag: str, azimuth, zenital, magnitude):
     return mpl.plot(obs_tag, azimuth, zenital, magnitude)
+
 
 figure = plot(obs_tag, measurements["azimuth"], measurements["zenital"], measurements["magnitude"])
 st.write("## Night Sky Brightness Plot")

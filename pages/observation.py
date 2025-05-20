@@ -20,17 +20,22 @@ import nixnox.web.dbase as db
 
 conn = st.connection("nixnox_db", type="sql")
 
+
 @st.cache_data(ttl=60)
 def get_observation_details(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_details(session, obs_tag)
+
 
 @st.cache_data(ttl=60)
 def get_measurements(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_measurements(session, obs_tag)
 
-observation, observer, location, photometer = get_observation_details(conn, st.session_state.obs_tag)
+
+observation, observer, location, photometer = get_observation_details(
+    conn, st.session_state.obs_tag
+)
 measurements = get_measurements(conn, st.session_state.obs_tag)
 
 # ==============

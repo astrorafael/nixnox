@@ -6,6 +6,7 @@ import nixnox.web.dbase as db
 # Convenience functions
 # ---------------------
 
+
 @st.cache_data(ttl=60)
 def obs_summary(_conn):
     with _conn.session as session:
@@ -13,14 +14,16 @@ def obs_summary(_conn):
 
 
 @st.cache_data(ttl=60)
-def get_observation_as_ecsv(_conn, obs_tag: str):
+def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
     with _conn.session as session:
-        return db.obs_export(session, obs_tag).getvalue()
+        return db.obs_export(session, obs_tag)
 
 
 def selected_obs() -> None:
-    row = st.session_state.Observation.selection.rows[0]
-    st.session_state.obs_tag = st.session_state.obs_list[row][0]
+    if st.session_state.Observation.selection.rows:
+        row = st.session_state.Observation.selection.rows[0]
+        st.session_state.obs_tag = st.session_state.obs_list[row][0]
+
 
 # ----------------------
 # Start the ball rolling
@@ -34,20 +37,20 @@ if "obs_list" not in st.session_state:
 
 st.title("**Available observations**")
 event = st.dataframe(
-    st.session_state.obs_list, 
+    st.session_state.obs_list,
     key="Observation",
     hide_index=True,
     on_select=selected_obs,
-    selection_mode="single-row"
+    selection_mode="single-row",
 )
 
-if "obs_tag" in st.session_state: 
+if "obs_tag" in st.session_state:
     obs_tag = st.session_state.obs_tag
-    ecsv =  get_observation_as_ecsv(conn, obs_tag)
+    ecsv = get_observation_as_ecsv(conn, obs_tag)
     st.download_button(
-         label=f"Download ECSV: *{obs_tag}*",
-         data=ecsv,
-         file_name=f"{obs_tag}.ecsv",
-         mime="text/csv",
-         icon=":material/download:",
-     )
+        label=f"Download ECSV: *{obs_tag}*",
+        data=ecsv,
+        file_name=f"{obs_tag}.ecsv",
+        mime="text/csv",
+        icon=":material/download:",
+    )

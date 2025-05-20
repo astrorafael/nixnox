@@ -26,7 +26,7 @@ if data:
         try:
             observation = nx.uploader(session, data)
         except nx.AlreadyExistsError as e:
-        	observation = e.args[0]
-        	st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
+            observation = e.args[0]
+            st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
         else:
             st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")

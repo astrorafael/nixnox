@@ -81,7 +81,7 @@ def obs_measurements(session, obs_tag: str):
     return session.scalars(q).all()
 
 
-def obs_export(session, obs_tag: str) -> StringIO:
+def obs_export(session, obs_tag: str) -> str:
     q = select(Observation).where(Observation.identifier == obs_tag)
     observation = session.scalars(q).one_or_none()
     measurements = observation.measurements
@@ -92,6 +92,6 @@ def obs_export(session, obs_tag: str) -> StringIO:
         table = TASExporter().to_table(photometer, observation, location, observer, measurements)
     else:
         raise NotImplementedError
-    output = StringIO()
-    table.write(output, delimiter=",", format="ascii.ecsv", overwrite=True)
-    return output
+    output_file = StringIO()
+    table.write(output_file, delimiter=",", format="ascii.ecsv", overwrite=True)
+    return output_file.getvalue()
