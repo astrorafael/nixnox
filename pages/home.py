@@ -1,19 +1,23 @@
+
+
 import streamlit as st
 
 import nixnox.web.dbase as db
+from nixnox.web.streamlit import ttl
 
 # ---------------------
 # Convenience functions
 # ---------------------
 
 
-@st.cache_data(ttl=60)
+
+@st.cache_data(ttl=ttl())
 def obs_summary(_conn):
     with _conn.session as session:
         return db.obs_summary(session)
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
     with _conn.session as session:
         return db.obs_export(session, obs_tag)
@@ -29,8 +33,10 @@ def selected_obs() -> None:
 # Start the ball rolling
 # ----------------------
 
-conn = st.connection("env:DB_CONN", type="sql")
+conn = st.connection("env:NX_ENV", type="sql")
 # Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
+
+
 
 if "obs_list" not in st.session_state:
     st.session_state.obs_list = obs_summary(conn)

@@ -16,7 +16,7 @@ import nixnox.lib.ecsv as nx
 
 
 # Database connection
-conn = st.connection("env:DB_CONN", type="sql")
+conn = st.connection("env:NX_ENV", type="sql")
 
 st.title("Upload TAS files to database")
 
@@ -29,6 +29,6 @@ if data:
             observation = e.args[0]
             st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
         except Exception:
-            st.error(f"Error: Invalid file format", icon="🚨")
+            st.error("Error: Invalid file format", icon="🚨")
         else:
             st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")

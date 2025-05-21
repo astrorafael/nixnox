@@ -2,6 +2,8 @@
 # Standard library
 # ----------------
 
+import os
+
 # ---------
 # STREAMLIT
 # ---------
@@ -13,21 +15,22 @@ import streamlit as st
 
 import pandas as pd
 import nixnox.web.dbase as db
+from nixnox.web.streamlit import ttl
 
 # ============
 # PAGE OBJECTS
 # ============
 
-conn = st.connection("env:DB_CONN", type="sql")
+conn = st.connection("env:NX_ENV", type="sql")
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def get_observation_details(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_details(session, obs_tag)
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def get_measurements(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_measurements(session, obs_tag)

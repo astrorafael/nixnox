@@ -16,27 +16,28 @@ import streamlit as st
 from astropy.table import Table
 import nixnox.web.dbase as db
 import nixnox.web.mpl as mpl
+from nixnox.web.streamlit import ttl
 
 # ============
 # PAGE OBJECTS
 # ============
 
-conn = st.connection("env:DB_CONN", type="sql")
+conn = st.connection("env:NX_ENV", type="sql")
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def get_observation_details(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_details(session, obs_tag)
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def get_measurements(_conn, obs_tag: str):
     with _conn.session as session:
         return db.obs_measurements(session, obs_tag)
 
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=ttl())
 def plot(
     obs_tag: str, azimuth, zenital, magnitude, _observation, _observer, _location, _photometer
 ):
