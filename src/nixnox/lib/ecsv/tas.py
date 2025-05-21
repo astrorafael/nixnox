@@ -51,6 +51,8 @@ from ..dbase.model import (
     Measurement,
 )
 
+from .excp import AlreadyExistsError
+
 # ----------------
 # Module constants
 # ----------------
@@ -233,8 +235,9 @@ class TASImporter:
         q = select(Observation).where(Observation.digest == obs_dict["digest"])
         previous = self.session.scalars(q).one_or_none()
         if previous:
-            return None
-        
+            e = AlreadyExistsError(previous)
+            log.error(e)
+            raise e
         return Observation(
             identifier=obs_dict["identifier"],
             digest=obs_dict["digest"],

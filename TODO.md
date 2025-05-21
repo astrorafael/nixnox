@@ -1,6 +1,5 @@
 # TODO
 
-* Test ECSV import routine
 * Deployment using docker
 	- Enviroment variables, sql connection
 	- External Volume

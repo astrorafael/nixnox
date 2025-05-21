@@ -36,19 +36,9 @@ from ..dbase.model import Observation
 from .tas import TASLoader, TASExporter, TASImporter
 from .sqm import SQMLoader
 
-
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
 
-
-class AlreadyExistsError(RuntimeError):
-    '''Item already exists in database'''
-    def __str__(self):
-        s = self.__doc__
-        if self.args:
-            s = '{1} {0}'.format(s, self.args[0])
-        s = '{0}.'.format(s)
-        return s
 
 def uploader(session: Session, file_obj: BinaryIO, **kwargs) -> Optional[Observation]:
     observation = None
@@ -92,8 +82,8 @@ def database_import(session: Session, file_obj: BinaryIO) -> Optional[Observatio
     log.info(table.meta)
     with session.begin():
         importer = TASImporter(session, table)
-        observation, existing = importer.observation()
-        if existing:
+        observation = importer.observation()
+        if observation is None:
             raise AlreadyExistsError(observation)
         photometer = importer.photometer()
         location = importer.location()
