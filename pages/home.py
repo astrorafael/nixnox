@@ -1,7 +1,15 @@
 import streamlit as st
+from streamlit.logger import get_logger
 
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
+
+
+# ----------------
+# Global variables
+# ----------------
+
+log = get_logger(__name__)
 
 OBSERVATION_LIMIT = 10
 
@@ -30,8 +38,10 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
 
 def selected_obs() -> None:
     if st.session_state.Observation.selection.rows:
+        log.debug("st.session_state.Observation.selection.rows = %s", st.session_state.Observation.selection.rows)
         row = st.session_state.Observation.selection.rows[0]
-        st.session_state.obs_tag = st.session_state.obs_list[row][0]
+        log.debug("st.session_state.obs_list[row] = %s", st.session_state.obs_list[row])
+        st.session_state.obs_tag = st.session_state.obs_list[row][1] # obst tag is the seccond item in the row
 
 
 # ----------------------
