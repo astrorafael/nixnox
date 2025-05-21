@@ -29,7 +29,7 @@ def selected_obs() -> None:
 # Start the ball rolling
 # ----------------------
 
-conn = st.connection("nixnox_db", type="sql")
+conn = st.connection("env:DB_CONN", type="sql")
 # Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
 
 if "obs_list" not in st.session_state:

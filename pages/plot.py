@@ -21,7 +21,7 @@ import nixnox.web.mpl as mpl
 # PAGE OBJECTS
 # ============
 
-conn = st.connection("nixnox_db", type="sql")
+conn = st.connection("env:DB_CONN", type="sql")
 
 
 @st.cache_data(ttl=60)

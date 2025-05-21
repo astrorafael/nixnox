@@ -16,7 +16,7 @@ import nixnox.lib.ecsv as nx
 
 
 # Database connection
-conn = st.connection("nixnox_db", type="sql")
+conn = st.connection("env:DB_CONN", type="sql")
 
 st.title("Upload TAS files to database")
 
