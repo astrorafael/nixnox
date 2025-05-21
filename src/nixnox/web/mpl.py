@@ -114,12 +114,13 @@ def plot_add_metadata(
     longitude = Angle(location["longitude"] * u.deg).to_string(
         precision=0, alwayssign=True,  format="latex_inline"
     )
-    fig.text(0.90, 0.29, f"{observation['timestamp_1']}Z", fontsize=14, horizontalalignment="right")
+    fig.text(0.90, 0.28, f"{observation['timestamp_1']}Z", size=14, ha="right")
+    fig.text(0.90, 0.26, f"Photometer: {photometer['name']}", size=14, ha="right")
     # fig.text(0.90, 0.17, self.file_txt_reduced, fontsize=12, horizontalalignment="right")
-    fig.text(0.12, 0.29, rf"LONG {longitude}", fontsize=14, horizontalalignment="left")
-    fig.text(0.12, 0.27, rf"LAT  {latitude}", fontsize=14, horizontalalignment="left")
+    fig.text(0.12, 0.28, rf"LONG {longitude}", size=14, ha="left")
+    fig.text(0.12, 0.26, rf"LAT  {latitude}", size=14, ha="left")
     name = observer_name(observer)[:100]
-    fig.text(0.5, 0.96, name, ha="center", size=10)
+    fig.text(0.5, 0.96, name, ha="center", size=12)
 
 
 def plot_non_interpolated(

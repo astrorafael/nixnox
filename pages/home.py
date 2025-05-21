@@ -16,6 +16,11 @@ def obs_summary(_conn):
     with _conn.session as session:
         return db.obs_summary(session)
 
+@st.cache_data(ttl=ttl())
+def obs_nsummaries(_conn):
+    with _conn.session as session:
+        return db.obs_nsummaries(session)
+
 
 @st.cache_data(ttl=ttl())
 def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
@@ -42,6 +47,7 @@ if "obs_list" not in st.session_state:
     st.session_state.obs_list = obs_summary(conn)
 
 st.title("**Available observations**")
+st.write(f"There are {obs_nsummaries(conn)} observations available.")
 event = st.dataframe(
     st.session_state.obs_list,
     key="Observation",

@@ -14,7 +14,8 @@ from io import StringIO
 # Third party libraries
 # =====================
 
-from sqlalchemy import select
+from sqlalchemy import select, func
+from streamlit.logger import get_logger
 
 # -------------
 # Local imports
@@ -28,11 +29,19 @@ from ..lib.dbase.model import (
     Observation,
     Location,
     Measurement,
-    Date,
 )
 
 from ..lib.ecsv.tas import TASExporter
 
+# ----------------
+# Global variables
+# ----------------
+
+log = get_logger(__name__)
+
+def obs_nsummaries(session):
+    q = select(func.count("*")).select_from(Observation)
+    return session.scalars(q).one()
 
 def obs_summary(session):
     q = (
@@ -43,13 +52,12 @@ def obs_summary(session):
             Location.place,
             Photometer.name.label("photometer"),
         )
-        .distinct()
         .select_from(Measurement)
-        .join(Date, Measurement.date_id == Date.date_id)
         .join(Observation, Measurement.obs_id == Observation.obs_id)
         .join(Location, Measurement.observer_id == Location.location_id)
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
+        .group_by(Measurement.obs_id)
     )
     return session.execute(q).all()
 
@@ -64,6 +72,7 @@ def obs_details(session, obs_tag: str):
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
         .where(Observation.identifier == obs_tag)
+        .group_by(Measurement.obs_id)
     )
     return session.execute(q).one()
 
@@ -82,6 +91,7 @@ def obs_measurements(session, obs_tag: str):
 
 
 def obs_export(session, obs_tag: str) -> str:
+    """Outputs a ECSV formatted string suitable to be sent to a web browser"""
     q = select(Observation).where(Observation.identifier == obs_tag)
     observation = session.scalars(q).one_or_none()
     measurements = observation.measurements
