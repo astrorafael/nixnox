@@ -1,5 +1,6 @@
 # TODO
 
+* Bug observer valid_since
 * Test ECSV import routine
 * Deployment using docker
 	- Enviroment variables, sql connection
@@ -7,7 +8,6 @@
 * Manual data entry
 * Authorised users?
 
-* Protegerese de ECSV invalidos, coger la excepcion
 * Listar los N ultimos resultados de sumario y decir cuantas observaciones hay en la base de datos
   (limit, y order by timestamp_1 desc)
 * Group by observation_id en lkugar del distinct

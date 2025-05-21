@@ -28,5 +28,7 @@ if data:
         except nx.AlreadyExistsError as e:
             observation = e.args[0]
             st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
+        except Exception:
+            st.error(f"Error: Invalid file format", icon="🚨")
         else:
             st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")
