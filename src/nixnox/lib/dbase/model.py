@@ -252,7 +252,7 @@ class Observer(Model):
         # Patch enum & date values
         r["type"] = self.type.value
         r["valid_since"] = self.valid_since.isoformat()
-        r["valid_since"] = self.valid_until.isoformat()
+        r["valid_until"] = self.valid_until.isoformat()
         r["valid_state"] = self.valid_state.value
         return r
  

@@ -1,22 +1,16 @@
 # TODO
 
-* Bug observer valid_since
 * Test ECSV import routine
 * Deployment using docker
 	- Enviroment variables, sql connection
 	- External Volume
 * Manual data entry
-* Authorised users?
-
-* Listar los N ultimos resultados de sumario y decir cuantas observaciones hay en la base de datos
-  (limit, y order by timestamp_1 desc)
-* Group by observation_id en lkugar del distinct
-* Home page debe de convertirse en Search Page:
+* Home page => en Search Page:
 	- By Datetime range
-	- By Location (coords box o ciudad) (&datetime desc)
-	- By Observer (& datetime desc)
-	- By Photometer (& datetime desc)
-* variables de entorno para distintas configuraciones de BD en .streamlit(/secrets.toml y justfile)
+	- By Location (coords box o ciudad) (& date/time desc)
+	- By Observer (& date/time desc)
+	- By Photometer (& date/time desc)
 * Dockerfile para desarrollo con sqlite3 y para produccion (maria?)
 * desplegar docker en la respberry
 * cerfificado real de stars4all?
+* Authorised users?

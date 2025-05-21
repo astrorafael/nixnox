@@ -1,20 +1,20 @@
-
-
 import streamlit as st
 
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
+
+OBSERVATION_LIMIT = 10
 
 # ---------------------
 # Convenience functions
 # ---------------------
 
 
-
 @st.cache_data(ttl=ttl())
-def obs_summary(_conn):
+def obs_summary(_conn, limit):
     with _conn.session as session:
-        return db.obs_summary(session)
+        return db.obs_summary(session, limit)
+
 
 @st.cache_data(ttl=ttl())
 def obs_nsummaries(_conn):
@@ -40,14 +40,17 @@ def selected_obs() -> None:
 
 conn = st.connection("env:NX_ENV", type="sql")
 # Photometer, Observer, Observation, Location, Date, Time, Measurement = database_models()
-
-
+N = obs_nsummaries(conn)
 
 if "obs_list" not in st.session_state:
-    st.session_state.obs_list = obs_summary(conn)
+    st.session_state.obs_list = obs_summary(conn, OBSERVATION_LIMIT)
 
 st.title("**Available observations**")
-st.write(f"There are {obs_nsummaries(conn)} observations available.")
+st.write(f"""
+    There are {obs_nsummaries(conn)} observations available.
+
+    The most recent {min(N, OBSERVATION_LIMIT)} observations are displayed:
+    """)
 event = st.dataframe(
     st.session_state.obs_list,
     key="Observation",

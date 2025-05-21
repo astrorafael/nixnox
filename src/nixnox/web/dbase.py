@@ -14,7 +14,7 @@ from io import StringIO
 # Third party libraries
 # =====================
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 from streamlit.logger import get_logger
 
 # -------------
@@ -39,18 +39,18 @@ from ..lib.ecsv.tas import TASExporter
 
 log = get_logger(__name__)
 
-def obs_nsummaries(session):
+def obs_nsummaries(session) -> int:
     q = select(func.count("*")).select_from(Observation)
     return session.scalars(q).one()
 
-def obs_summary(session):
+def obs_summary(session, limit=10):
     q = (
         select(
-            Observation.identifier.label("tag"),
             Observation.timestamp_1.label("date"),
-            Observer.name,
+            Observation.identifier.label("tag"),
             Location.place,
             Photometer.name.label("photometer"),
+            Observer.name,
         )
         .select_from(Measurement)
         .join(Observation, Measurement.obs_id == Observation.obs_id)
@@ -58,6 +58,8 @@ def obs_summary(session):
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
         .group_by(Measurement.obs_id)
+        .order_by(desc(Measurement.date_id), desc(Measurement.time_id))
+        .limit(limit)
     )
     return session.execute(q).all()
 
@@ -66,7 +68,6 @@ def obs_details(session, obs_tag: str):
     q = (
         select(Observation, Observer, Location, Photometer)
         .select_from(Measurement)
-        .distinct()
         .join(Observation, Measurement.obs_id == Observation.obs_id)
         .join(Location, Measurement.observer_id == Location.location_id)
         .join(Observer, Measurement.observer_id == Observer.observer_id)
