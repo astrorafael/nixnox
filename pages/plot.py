@@ -37,8 +37,19 @@ def get_measurements(_conn, obs_tag: str):
 
 
 @st.cache_data(ttl=60)
-def plot(obs_tag: str, azimuth, zenital, magnitude):
-    return mpl.plot(obs_tag, azimuth, zenital, magnitude)
+def plot(
+    obs_tag: str, azimuth, zenital, magnitude, _observation, _observer, _location, _photometer
+):
+    return mpl.plot(
+        obs_tag,
+        azimuth,
+        zenital,
+        magnitude,
+        observation=_observation,
+        observer=_observer,
+        location=_location,
+        photometer=_photometer,
+    )
 
 
 st.write("## Night Sky Brightness Plot")
@@ -50,7 +61,14 @@ else:
     measurements = get_measurements(conn, st.session_state.obs_tag)
     measurements = Table([m.to_dict() for m in measurements])
     figure = plot(
-        obs_tag, measurements["azimuth"], measurements["zenital"], measurements["magnitude"]
+        obs_tag,
+        measurements["azimuth"],
+        measurements["zenital"],
+        measurements["magnitude"],
+        observation.to_dict(),
+        observer.to_dict(),
+        location.to_dict(),
+        photometer.to_dict(),
     )
     output = BytesIO()
     figure.savefig(output)

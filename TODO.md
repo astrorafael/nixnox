@@ -1,7 +1,6 @@
 # TODO
 
 * Test ECSV import routine
-* New Plot routine => Meter metadatos
 * Deployment using docker
 	- Enviroment variables, sql connection
 	- External Volume

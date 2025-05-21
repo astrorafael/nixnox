@@ -134,6 +134,23 @@ CoordinatesType: Enum = Enum(
     values_callable=lambda x: [e.value.title() for e in x],
 )
 
+
+# ------------------
+# Auxiliar functions
+# ------------------
+
+def observer_name(observer: dict) -> str:
+    """Handy formatting tool to get a good observer name"""
+    name = observer["name"]
+    if ObserverType(observer["type"]) == ObserverType.PERSON:
+        long_affil = observer["affiliation"] if observer["affiliation"] is not None else ""
+        short_affil = observer["acronym"] if observer["acronym"] is not None else ""
+    else:
+        long_affil = ""
+        short_affil = observer["acronym"] if observer["acronym"] is not None else ""
+    affiliation = short_affil or long_affil
+    return f"{name} ({affiliation})" if affiliation else name
+
 # --------
 # Entities
 # --------

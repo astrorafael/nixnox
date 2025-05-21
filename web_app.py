@@ -36,10 +36,6 @@ pg = st.navigation(
             title="Upload observation file",
             icon=":material/upload_file:",
         ),
-        st.Page(
-            os.path.join("pages", "plot_alex.py"),
-            title="Plot Alex",
-        ),
     ]
 )
 st.set_page_config(page_title="NIXNOX")

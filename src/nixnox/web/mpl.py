@@ -19,6 +19,9 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
+from astropy.coordinates import Angle
+from astropy import units as u
+
 from scipy.interpolate import griddata
 
 import matplotlib.pyplot as plt
@@ -30,6 +33,8 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 
 from streamlit.logger import get_logger
+
+from ..lib.dbase.model import observer_name
 
 # ----------------
 # Global variables
@@ -45,6 +50,7 @@ class Magnitude(float, Enum):
     MEDIUM_DARK = 18.6
     SUPER_DARK = 22.0
     BLACK = 24.0
+
 
 class Azimuth(Enum):
     N = 0
@@ -97,6 +103,23 @@ def colormap() -> LinearSegmentedColormap:
     colors1 = plt.cm.YlOrRd_r(np.linspace(0, 1, 256 - NC1))
     colors = np.vstack((colors1, colors2))
     return mcolors.LinearSegmentedColormap.from_list("my_colormap", colors)
+
+
+def plot_add_metadata(
+    fig: Figure, observation: dict, observer: dict, location: dict, photometer: dict
+) -> None:
+    latitude = Angle(location["latitude"] * u.deg).to_string(
+        precision=0, alwayssign=True,  format="latex_inline"
+    )
+    longitude = Angle(location["longitude"] * u.deg).to_string(
+        precision=0, alwayssign=True,  format="latex_inline"
+    )
+    fig.text(0.90, 0.29, f"{observation['timestamp_1']}Z", fontsize=14, horizontalalignment="right")
+    # fig.text(0.90, 0.17, self.file_txt_reduced, fontsize=12, horizontalalignment="right")
+    fig.text(0.12, 0.29, rf"LONG {longitude}", fontsize=14, horizontalalignment="left")
+    fig.text(0.12, 0.27, rf"LAT  {latitude}", fontsize=14, horizontalalignment="left")
+    name = observer_name(observer)[:100]
+    fig.text(0.5, 0.96, name, ha="center", size=10)
 
 
 def plot_non_interpolated(
@@ -235,6 +258,10 @@ def plot(
     nticks: int = 12,  # Number of xticks labels to avoid crowding
     thr_mag: float = 10,  # Threshold magnitude for brightness cmap steps
     interpolated: bool = True,
+    observation: dict = None,  # Additional observation metadata
+    observer: dict = None,  # Additional observer metadata
+    location: dict = None,  # Additional location metadata
+    photometer: dict = None,  # Additional photometer metadata
 ) -> Figure:
     """Produce a color map of sky night brightness"""
     fig = (
@@ -259,6 +286,11 @@ def plot(
             thr_mag=thr_mag,
         )
     )
+    if observation is not None:
+        assert observer is not None
+        assert location is not None
+        assert photometer is not None
+        plot_add_metadata(fig, observation, observer, location, photometer)
     return fig
 
 
