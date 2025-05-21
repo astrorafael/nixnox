@@ -1,8 +1,11 @@
+import datetime
+
 import streamlit as st
 from streamlit.logger import get_logger
 
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
+from nixnox.lib import ObserverType, PhotometerModel
 
 
 # ----------------
@@ -38,10 +41,15 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
 
 def selected_obs() -> None:
     if st.session_state.Observation.selection.rows:
-        log.debug("st.session_state.Observation.selection.rows = %s", st.session_state.Observation.selection.rows)
+        log.debug(
+            "st.session_state.Observation.selection.rows = %s",
+            st.session_state.Observation.selection.rows,
+        )
         row = st.session_state.Observation.selection.rows[0]
         log.debug("st.session_state.obs_list[row] = %s", st.session_state.obs_list[row])
-        st.session_state.obs_tag = st.session_state.obs_list[row][1] # obst tag is the seccond item in the row
+        st.session_state.obs_tag = st.session_state.obs_list[row][
+            1
+        ]  # obst tag is the seccond item in the row
 
 
 # ----------------------
@@ -79,3 +87,38 @@ if "obs_tag" in st.session_state:
         mime="text/csv",
         icon=":material/download:",
     )
+
+with st.expander("Search by Date"):
+    from_date = st.date_input(
+        "From", min_value=datetime.date(2000, 1, 1), max_value=datetime.date.today()
+    )
+    to_date = st.date_input(
+        "To", min_value=datetime.date(2000, 1, 1), max_value=datetime.date.today()
+    )
+    st.button("Search", type="secondary", key="SearchByDateButton")
+
+with st.expander("Search by Location"):
+    c1, c2 = st.columns(2)
+    with c1:
+        longitude1 = st.text_input("Longitude 1", "0.0")
+        longitude2 = st.text_input("Longitude 2", "0.0")
+    with c2:
+        latitude1 = st.text_input("Latitude 1", "0.0")
+        latitude2 = st.text_input("Latitude 2", "0.0")
+    st.button("Search", type="secondary", key="SearchByCoordsButton")
+
+with st.expander("Search by Observer"):
+    option = st.selectbox(
+        "Observer type",
+        [x.value for x in ObserverType],
+    )
+    st.text_input("Name", None, key="ObserverNameButton")
+    st.button("Search", type="secondary", key="SearchByObserverButton")
+
+with st.expander("Search by Photometer"):
+    option = st.selectbox(
+        "Model",
+        [x.value for x in PhotometerModel],
+    )
+    st.text_input("Name", None, key="PhotNameButton")
+    st.button("Search", type="secondary", key="SearchByPhotometerButton")
