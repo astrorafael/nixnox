@@ -1,8 +1,21 @@
+# ------------------
+# Standard libraries
+# ------------------
+
 import datetime
+
+# ---------------------
+# Third party libraries
+# ---------------------
+
+from dateutil.relativedelta import relativedelta
 
 import streamlit as st
 from streamlit.logger import get_logger
 
+# -------------
+# Own libraries
+# -------------
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
 from nixnox.lib import ObserverType, PhotometerModel
@@ -87,38 +100,36 @@ if "obs_tag" in st.session_state:
         mime="text/csv",
         icon=":material/download:",
     )
-
-with st.expander("Search by Date"):
-    from_date = st.date_input(
-        "From", min_value=datetime.date(2000, 1, 1), max_value=datetime.date.today()
-    )
-    to_date = st.date_input(
-        "To", min_value=datetime.date(2000, 1, 1), max_value=datetime.date.today()
-    )
-    st.button("Search", type="secondary", key="SearchByDateButton")
-
-with st.expander("Search by Location"):
-    c1, c2 = st.columns(2)
-    with c1:
-        longitude1 = st.text_input("Longitude 1", "0.0")
-        longitude2 = st.text_input("Longitude 2", "0.0")
-    with c2:
-        latitude1 = st.text_input("Latitude 1", "0.0")
-        latitude2 = st.text_input("Latitude 2", "0.0")
-    st.button("Search", type="secondary", key="SearchByCoordsButton")
-
-with st.expander("Search by Observer"):
-    option = st.selectbox(
-        "Observer type",
-        [x.value for x in ObserverType],
-    )
-    st.text_input("Name", None, key="ObserverNameButton")
-    st.button("Search", type="secondary", key="SearchByObserverButton")
-
-with st.expander("Search by Photometer"):
-    option = st.selectbox(
-        "Model",
-        [x.value for x in PhotometerModel],
-    )
-    st.text_input("Name", None, key="PhotNameButton")
-    st.button("Search", type="secondary", key="SearchByPhotometerButton")
+with st.form("Search"):
+    st.write("## Search")
+    with st.expander("Filter by date range"):
+        ancient= min_value=datetime.date(2000, 1, 1)
+        today = datetime.date.today()
+        year_ago = datetime.date.today() - relativedelta(years=1)
+        from_date = st.date_input(
+            "From", value=year_ago, min_value=ancient, max_value=today
+        )
+        to_date = st.date_input(
+            "To", value=today, min_value=ancient, max_value=today
+        )
+    with st.expander("Filter by location range"):
+        c1, c2 = st.columns(2)
+        with c1:
+            longitude1 = st.number_input("From Longitude", value=None, min_value=-180, max_value=180, key="FromLongWg")
+            longitude2 = st.number_input("To Longitude", value=None, min_value=-180, max_value=180, key="ToLongWg")
+        with c2:
+            latitude1 = st.number_input("From Latitude", value=None, min_value=-90, max_value=90, key="FromLatWg")
+            latitude2 = st.number_input("To Latitude", value=None, min_value=-90, max_value=90, key="ToLatWg")
+    with st.expander("Filter by observer"):
+        option = st.selectbox(
+            "Observer type",
+            [x.value for x in ObserverType],
+        )
+        st.text_input("Name", value=None, key="ObserverNameWg")
+    with st.expander("Filter by photometer"):
+        option = st.selectbox(
+            "Model",
+            [x.value for x in PhotometerModel],
+        )
+        st.text_input("Name", value=None, key="PhotNameWg")
+    submitted = st.form_submit_button("**Submit**", help="Search by any/all filter criteria")
