@@ -433,7 +433,7 @@ class Measurement(Model):
     observer_id: Mapped[int] = mapped_column(ForeignKey("nx_observer_t.observer_id"))
     location_id: Mapped[int] = mapped_column(ForeignKey("nx_location_t.location_id"))
     phot_id: Mapped[int] = mapped_column(ForeignKey("nx_photometer_t.phot_id"))
-    obs_id: Mapped[int] = mapped_column(ForeignKey("nx_observation_t.obs_id"))
+    obs_id: Mapped[int] = mapped_column(ForeignKey("nx_observation_t.obs_id"), index=True)
     # Sequence number within the batch, TAS only
     sequence: Mapped[Optional[int]]
     # Azimuth in decimal degrees
