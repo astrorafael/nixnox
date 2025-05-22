@@ -65,6 +65,10 @@ def selected_obs() -> None:
         ]  # obst tag is the seccond item in the row
 
 
+def procesa() -> None:
+    st.write(st.session_state)
+
+
 # ----------------------
 # Start the ball rolling
 # ----------------------
@@ -101,35 +105,48 @@ if "obs_tag" in st.session_state:
         icon=":material/download:",
     )
 with st.form("Search"):
-    st.write("## Search")
+    st.write("## Observations finder")
     with st.expander("Filter by date range"):
-        ancient= min_value=datetime.date(2000, 1, 1)
+        ancient = min_value = datetime.date(2000, 1, 1)
         today = datetime.date.today()
         year_ago = datetime.date.today() - relativedelta(years=1)
         from_date = st.date_input(
-            "From", value=year_ago, min_value=ancient, max_value=today
+            "From", value=year_ago, min_value=ancient, max_value=today, key="from_date"
         )
         to_date = st.date_input(
-            "To", value=today, min_value=ancient, max_value=today
+            "To", value=today, min_value=ancient, max_value=today, key="to_date"
         )
     with st.expander("Filter by location range"):
         c1, c2 = st.columns(2)
         with c1:
-            longitude1 = st.number_input("From Longitude", value=None, min_value=-180, max_value=180, key="FromLongWg")
-            longitude2 = st.number_input("To Longitude", value=None, min_value=-180, max_value=180, key="ToLongWg")
+            longitude1 = st.number_input(
+                "From Longitude", value=None, min_value=-180, max_value=180, key="from_longitude"
+            )
+            longitude2 = st.number_input(
+                "To Longitude", value=None, min_value=-180, max_value=180, key="to_longitude"
+            )
         with c2:
-            latitude1 = st.number_input("From Latitude", value=None, min_value=-90, max_value=90, key="FromLatWg")
-            latitude2 = st.number_input("To Latitude", value=None, min_value=-90, max_value=90, key="ToLatWg")
+            latitude1 = st.number_input(
+                "From Latitude", value=None, min_value=-90, max_value=90, key="from_latitude"
+            )
+            latitude2 = st.number_input(
+                "To Latitude", value=None, min_value=-90, max_value=90, key="to_latitude"
+            )
     with st.expander("Filter by observer"):
         option = st.selectbox(
             "Observer type",
             [x.value for x in ObserverType],
         )
-        st.text_input("Name", value=None, key="ObserverNameWg")
+        st.text_input("Name", value=None, key="by_observer")
     with st.expander("Filter by photometer"):
         option = st.selectbox(
             "Model",
             [x.value for x in PhotometerModel],
         )
-        st.text_input("Name", value=None, key="PhotNameWg")
-    submitted = st.form_submit_button("**Submit**", help="Search by any/all filter criteria")
+        st.text_input("Name", value=None, key="by_photometer")
+    st.form_submit_button(
+        "**Search**",
+        help="Search by any/all filter criteria",
+        icon=":material/search:",
+        on_click=procesa,
+    )
