@@ -27,7 +27,6 @@ from nixnox.lib import ObserverType, PhotometerModel
 
 log = get_logger(__name__)
 
-OBSERVATION_LIMIT = 10
 
 # ---------------------
 # Convenience functions
@@ -35,9 +34,9 @@ OBSERVATION_LIMIT = 10
 
 
 @st.cache_data(ttl=ttl())
-def obs_summary(_conn, limit):
+def obs_summary(_conn, conditions):
     with _conn.session as session:
-        return db.obs_summary(session, limit)
+        return db.obs_summary_search(session, conditions)
 
 
 @st.cache_data(ttl=ttl())
@@ -59,30 +58,31 @@ def selected_obs() -> None:
             st.session_state.ObservationDF.selection.rows,
         )
         row = st.session_state.ObservationDF.selection.rows[0]
-        log.debug("st.session_state.obs_list[row] = %s", st.session_state.obs_list[row])
+        log.debug("st.session_state.result_table[row] = %s", st.session_state.result_table[row])
         # obs_tag is the seccnd item in the row
-        st.session_state.obs_tag = st.session_state.obs_list[row][1]
+        st.session_state.obs_tag = st.session_state.result_table[row][1]
 
 
-def procesa() -> None:
+def search_database() -> None:
     search_conditions = {
         k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")
     }
-    search_conditions["search_by_phot_model"] = PhotometerModel(
-        search_conditions["search_by_phot_model"]
-    )
-    search_conditions["search_by_observer_type"] = ObserverType(
-        search_conditions["search_by_observer_type"]
-    )
-    with conn.session as session:
-        resultado = db.obs_summary_search(session, search_conditions)
-        st.write(resultado)
-        st.session_state.obs_list = resultado
+    if search_conditions:
+        search_conditions["search_by_phot_model"] = PhotometerModel(
+            search_conditions["search_by_phot_model"]
+        )
+        search_conditions["search_by_observer_type"] = ObserverType(
+            search_conditions["search_by_observer_type"]
+        )
+        result_set = obs_summary(conn, search_conditions)
+        #st.write(result_set)
+        st.session_state.result_table = result_set
 
 
 def form(on_submit: Callable) -> None:
     with st.form("Search", clear_on_submit=True):
         st.write("## Observations finder")
+        st.slider("Max. number of results", value=10, min_value=1, max_value=100, key="search_limit")
         with st.expander("Filter by date range"):
             ancient = date(
                 2000,
@@ -154,7 +154,7 @@ def form(on_submit: Callable) -> None:
             st.text_input("Name", value=None, key="search_by_observer_name")
         with st.expander("Filter by photometer"):
             st.selectbox("Model", [x.value for x in PhotometerModel], key="search_by_phot_model")
-            st.text_input("Name", value=None, key="search_by_photometer")
+            st.text_input("Name", value=None, key="search_by_phot_name")
         st.form_submit_button(
             "**Search**",
             help="Search by any/all filter criteria",
@@ -167,16 +167,19 @@ def form(on_submit: Callable) -> None:
 
 def header(conn) -> None:
     st.title("**Available observations**")
-    if "obs_list" not in st.session_state:
-        st.session_state.obs_list = obs_summary(conn, OBSERVATION_LIMIT)
-    N = obs_nsummaries(conn)
-    st.write(f"There are {obs_nsummaries(conn)} observations available.")
+    st.write(f"There are {obs_nsummaries(conn)} stored observations available.")
+    if "result_table" not in st.session_state:
+        st.write("Displaying a default view of what is available.")
+        st.session_state.result_table = obs_summary(conn, None)
+    else:
+        table = st.session_state.result_table
+        N = st.session_state.get("search_limit",10)
+        st.write(f"Search displaying {len(table)}/{N}.")
 
-
-def results(resultset, limit):
-    st.write(f"Up to {limit} observations are displayed:")
+def results(resultset):
+    #st.write(f"Up to {limit} observations are displayed:")
     st.dataframe(
-        st.session_state.obs_list,
+        st.session_state.result_table,
         key="ObservationDF",
         hide_index=True,
         on_select=selected_obs,
@@ -200,6 +203,6 @@ def results(resultset, limit):
 
 conn = st.connection("env:NX_ENV", type="sql")
 header(conn)
-results(resultset=st.session_state.obs_list, limit=OBSERVATION_LIMIT)
+results(resultset=st.session_state.result_table)
 st.divider()
-form(on_submit=procesa)
+form(on_submit=search_database)
