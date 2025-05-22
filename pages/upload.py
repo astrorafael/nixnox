@@ -1,6 +1,8 @@
 # ---------------
 # Standard library
 # ---------------
+import os
+import time
 
 # ---------
 # STREAMLIT
@@ -25,10 +27,13 @@ if data:
     with conn.session as session:
         try:
             observation = nx.uploader(session, data)
-        except nx.AlreadyExistsError as e:
+        except nx.excp.AlreadyExistsError as e:
             observation = e.args[0]
-            st.error(f"Error: {observation.identifier} already exists in the database", icon="🚨")
-        except Exception:
+            st.error("Error: observation already exists in the database", icon="🚨")
+        except Exception as e:
+            st.write(e)
             st.error("Error: Invalid file format", icon="🚨")
         else:
             st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")
+            time.sleep(2)
+            st.switch_page(os.path.join("pages", "home.py"))

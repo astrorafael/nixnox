@@ -189,7 +189,7 @@ def results(resultset):
         obs_tag = st.session_state.obs_tag
         ecsv = get_observation_as_ecsv(conn, obs_tag)
         st.download_button(
-            label=f"Download ECSV: *{obs_tag}*",
+            label=f"Download ECSV file: *{obs_tag}*",
             data=ecsv,
             file_name=f"{obs_tag}.ecsv",
             mime="text/csv",
