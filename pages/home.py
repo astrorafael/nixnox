@@ -160,7 +160,7 @@ def form(on_submit: Callable) -> None:
             help="Search by any/all filter criteria",
             icon=":material/search:",
             type="primary",
-            use_container_width=True,
+            use_container_width=False,
             on_click=on_submit,
         )
 

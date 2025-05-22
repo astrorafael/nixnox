@@ -13,7 +13,7 @@ import streamlit as st
 # ==========================
 # WEB APPPLICATION STRUCTURE
 # ==========================
-st.set_page_config(page_title="NIXNOX")
+st.set_page_config(page_title="NIXNOX", layout="wide")
 pg = st.navigation(
     [
         st.Page(
