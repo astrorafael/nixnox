@@ -2,7 +2,7 @@
 # Standard libraries
 # ------------------
 
-import datetime
+from datetime import datetime
 
 # ---------------------
 # Third party libraries
@@ -66,7 +66,12 @@ def selected_obs() -> None:
 
 
 def procesa() -> None:
-    st.write(st.session_state)
+    search_results = {k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")}
+    dt0 = datetime.combine(search_results["search_date_range"][0], datetime.min.time())
+    dt1 = datetime.combine(search_results["search_date_range"][1], datetime.min.time())
+    search_results["search_date_range"] = (dt0, dt1)
+    st.write(search_results)
+
 
 
 # ----------------------
@@ -104,46 +109,44 @@ if "obs_tag" in st.session_state:
         mime="text/csv",
         icon=":material/download:",
     )
-with st.form("Search"):
+with st.form("Search", clear_on_submit=True):
     st.write("## Observations finder")
     with st.expander("Filter by date range"):
-        ancient = min_value = datetime.datetime(2000, 1, 1,0,0,0)
-        today = datetime.datetime.now().replace(hour=0, minute=0, second=0,microsecond=0)
+        ancient = min_value = datetime(2000, 1, 1,0,0,0)
+        today = datetime.now().replace(hour=0, minute=0, second=0,microsecond=0)
         year_ago = today - relativedelta(years=1)
+        month_ago = today - relativedelta(months=1)
         from_date = st.date_input(
-            "From", value=year_ago, min_value=ancient, max_value=today, key="from_date"
-        )
-        to_date = st.date_input(
-            "To", value=today, min_value=ancient, max_value=today, key="to_date"
+            "Range", value=(month_ago, today), min_value=ancient, max_value=today, key="search_date_range"
         )
     with st.expander("Filter by location range"):
         c1, c2 = st.columns(2)
         with c1:
             longitude1 = st.number_input(
-                "From Longitude", value=None, min_value=-180, max_value=180, key="from_longitude"
+                "From Longitude", value=None, min_value=-180, max_value=180, key="search_from_longitude"
             )
             longitude2 = st.number_input(
-                "To Longitude", value=None, min_value=-180, max_value=180, key="to_longitude"
+                "To Longitude", value=None, min_value=-180, max_value=180, key="search_to_longitude"
             )
         with c2:
             latitude1 = st.number_input(
-                "From Latitude", value=None, min_value=-90, max_value=90, key="from_latitude"
+                "From Latitude", value=None, min_value=-90, max_value=90, key="search_from_latitude"
             )
             latitude2 = st.number_input(
-                "To Latitude", value=None, min_value=-90, max_value=90, key="to_latitude"
+                "To Latitude", value=None, min_value=-90, max_value=90, key="search_to_latitude"
             )
     with st.expander("Filter by observer"):
         option = st.selectbox(
             "Observer type",
-            [x.value for x in ObserverType],
+            [x.value for x in ObserverType],  key="search_by_observer_type"
         )
-        st.text_input("Name", value=None, key="by_observer")
+        st.text_input("Name", value=None, key="search_by_observer_name")
     with st.expander("Filter by photometer"):
         option = st.selectbox(
             "Model",
-            [x.value for x in PhotometerModel],
+            [x.value for x in PhotometerModel],  key="search_by_phot_model"
         )
-        st.text_input("Name", value=None, key="by_photometer")
+        st.text_input("Name", value=None, key="search_by_photometer")
     st.form_submit_button(
         "**Search**",
         help="Search by any/all filter criteria",
