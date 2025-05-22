@@ -622,7 +622,7 @@ wheels = [
 
 [[package]]
 name = "nixnox"
-version = "0.1.dev42+g12f03c3.d20250519"
+version = "0.1.dev75+gd3eb031.d20250522"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -630,6 +630,7 @@ dependencies = [
     { name = "geopy" },
     { name = "lica" },
     { name = "matplotlib" },
+    { name = "python-dateutil" },
     { name = "python-decouple" },
     { name = "pytz" },
     { name = "scipy" },
@@ -639,7 +640,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 
-[package.dependency-groups]
+[package.dev-dependencies]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
@@ -652,6 +653,7 @@ requires-dist = [
     { name = "geopy", specifier = ">=2.4" },
     { name = "lica", specifier = ">=1.1" },
     { name = "matplotlib", specifier = ">=3.10" },
+    { name = "python-dateutil", specifier = ">=2.9" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "pytz", specifier = ">=2025.2" },
     { name = "scipy", specifier = ">=1.15" },
@@ -661,7 +663,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12" },
 ]
 
-[package.metadata.dependency-groups]
+[package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.15.0" },
     { name = "pytest", specifier = ">=8.3.3" },

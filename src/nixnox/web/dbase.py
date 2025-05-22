@@ -95,6 +95,7 @@ def obs_summary_search(session, cond: dict = None):
                 Location.town.like("%" + cond["search_by_location_name"] + "%"),
             )
         else:
+            # All coords must be not None
             good_coords = list(
                 map(
                     lambda x: x is not None,
@@ -107,8 +108,10 @@ def obs_summary_search(session, cond: dict = None):
                 )
             )
             if all(good_coords):
-                long1, long2 = min(cond["search_from_longitude"]), max(cond["search_to_longitude"])
-                lat1, lat2 = min(cond["search_from_latitude"]), max(cond["search_to_latitude"])
+                long1 = min(cond["search_from_longitude"], cond["search_to_longitude"])
+                long2 = max(cond["search_from_longitude"], cond["search_to_longitude"])
+                lat1 = min(cond["search_from_latitude"], cond["search_to_latitude"])
+                lat2 = max(cond["search_from_latitude"], cond["search_to_latitude"])
                 q = q.where(
                     Location.longitude.between(long1, long2),
                     Location.latitude.between(lat1, lat2),
