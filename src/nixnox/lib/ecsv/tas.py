@@ -12,7 +12,7 @@ import os
 import logging
 
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Iterable, Tuple
+from typing import Iterable
 
 # -------------------
 # Third party imports
@@ -78,7 +78,7 @@ class TASLoader:
         self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
         self.extra_path = extra_path
 
-    def observation(self, digest: str) -> Tuple[Observation, bool]:
+    def observation(self, digest: str) -> Observation:
         filename = self.table.meta["keywords"]["measurements_file"]
         filename, _ = os.path.splitext(filename)
         temperature = np.median(self.table["T_sens"])
@@ -92,7 +92,7 @@ class TASLoader:
         q = select(Observation).where(Observation.digest == digest)
         obs = self.session.scalars(q).one_or_none()
         if obs:
-            existing = True
+            raise AlreadyExistsError(str(obs))
         else:
             obs = Observation(
                 identifier=filename,
@@ -103,8 +103,7 @@ class TASLoader:
                 timestamp_1 = mid_time,
                 timestamp_meas=timestamp_meas,
             )
-            existing = False
-        return obs, existing
+        return obs
 
     def photometer(self) -> Photometer:
         name = self.table.meta["keywords"]["photometer"]
@@ -230,14 +229,12 @@ class TASImporter:
         self.table = table
         self.tstamp_fmt = "%Y-%m-%dT%H:%M:%S%z"
 
-    def observation(self) -> Optional[Observation]:
+    def observation(self) -> Observation:
         obs_dict = self.table.meta["Observation"]
         q = select(Observation).where(Observation.digest == obs_dict["digest"])
         previous = self.session.scalars(q).one_or_none()
         if previous:
-            e = AlreadyExistsError(previous)
-            log.error(e)
-            raise e
+            raise AlreadyExistsError(previous)
         return Observation(
             identifier=obs_dict["identifier"],
             digest=obs_dict["digest"],

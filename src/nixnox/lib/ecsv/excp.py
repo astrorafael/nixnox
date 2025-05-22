@@ -4,6 +4,6 @@ class AlreadyExistsError(RuntimeError):
     def __str__(self):
         s = self.__doc__
         if self.args:
-            s = '{1} {0}'.format(s, self.args[0])
+            s = '{0}: {1}'.format(s, self.args[0])
         s = '{0}.'.format(s)
         return s

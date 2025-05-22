@@ -48,11 +48,11 @@ def uploader(session: Session, file_obj: BinaryIO, **kwargs) -> Optional[Observa
     name = table.meta["keywords"]["photometer"]
     with session.begin():
         subloader = (
-            TASLoader(session, table, kwargs.get("extra_path")) if name.startswith("TAS") else SQMLoader(session, table)
+            TASLoader(session, table, kwargs.get("extra_path"))
+            if name.startswith("TAS")
+            else SQMLoader(session, table)
         )
-        observation, existing = subloader.observation(digest)
-        if existing:
-            raise AlreadyExistsError(observation)
+        observation = subloader.observation(digest)  # may reaise an exception if already existing
         photometer = subloader.photometer()
         location = subloader.location()
         observer = subloader.observer()
@@ -83,8 +83,6 @@ def database_import(session: Session, file_obj: BinaryIO) -> Optional[Observatio
     with session.begin():
         importer = TASImporter(session, table)
         observation = importer.observation()
-        if observation is None:
-            raise AlreadyExistsError(observation)
         photometer = importer.photometer()
         location = importer.location()
         observer = importer.observer()
@@ -107,24 +105,20 @@ def database_import(session: Session, file_obj: BinaryIO) -> Optional[Observatio
             return observation
 
 
-
-    
-
-def _recall_observation(session: Session,  observation: Observation) -> Table:
+def _recall_observation(session: Session, observation: Observation) -> Table:
     # This will trigger several SQL queries
     measurements = observation.measurements
     location = measurements[0].location
     observer = measurements[0].observer
     photometer = measurements[0].photometer
     if photometer.model == PhotometerModel.TAS:
-        table = TASExporter().to_table(
-                    photometer, observation, location, observer, measurements
-                )
+        table = TASExporter().to_table(photometer, observation, location, observer, measurements)
     else:
         raise NotImplementedError
     return table
 
-def database_export(session: Session, out_dir: str, identifier: str|None) -> None:
+
+def database_export(session: Session, out_dir: str, identifier: str | None) -> None:
     if identifier is not None:
         q = select(Observation).where(Observation.identifier == identifier)
         observation = session.scalars(q).one_or_none()
@@ -142,7 +136,3 @@ def database_export(session: Session, out_dir: str, identifier: str|None) -> Non
             table = _recall_observation(session, observation)
             path = os.path.join(out_dir, identifier + ".ecsv")
             table.write(path, delimiter=",", format="ascii.ecsv", overwrite=True)
-
-
-
-

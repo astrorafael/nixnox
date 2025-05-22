@@ -34,6 +34,7 @@ from ...lib.ecsv import (
     database_import,
     database_export,
 )
+from ...lib.ecsv.excp import AlreadyExistsError
 
 # ----------------
 # Module constants
@@ -63,7 +64,7 @@ def cli_dbexport_single(session: Session, args: Namespace) -> None:
     identifier = " ".join(args.identifier)
     os.makedirs(args.folder, exist_ok=True)
     database_export(session, args.folder, identifier)
-    
+
 
 def cli_dbexport_all(session: Session, args: Namespace) -> None:
     os.makedirs(args.folder, exist_ok=True)
@@ -74,22 +75,31 @@ def cli_dbimport_single(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        database_import(session, file_obj)
+        try:
+            database_import(session, file_obj)
+        except AlreadyExistsError as e:
+            log.error(e)
+
 
 def cli_dbimport_all(session: Session, args: Namespace) -> None:
     for path in glob.iglob("*.ecsv", root_dir=args.folder):
         path = os.path.join(args.folder, path)
         log.info("Loading file %s", path)
         with open(path, "rb") as file_obj:
-            database_import(session, file_obj)
+            try:
+                database_import(session, file_obj)
+            except AlreadyExistsError as e:
+                log.error(e)
 
 
 def cli_obsload_ecsv(session: Session, args: Namespace) -> None:
     path = " ".join(args.input_file)
     log.info("Loading file %s", path)
     with open(path, "rb") as file_obj:
-        uploader(session, file_obj, extra_path=args.text)
-
+        try:
+            uploader(session, file_obj, extra_path=args.text)
+        except AlreadyExistsError as e:
+            log.error(e)
 
 def add_dbimport_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
