@@ -204,5 +204,4 @@ def results(resultset):
 conn = st.connection("env:NX_ENV", type="sql")
 header(conn)
 results(resultset=st.session_state.result_table)
-st.divider()
 form(on_submit=search_database)
