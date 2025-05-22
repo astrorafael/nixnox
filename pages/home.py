@@ -154,7 +154,7 @@ def form(on_submit: Callable) -> None:
             st.text_input("Name", value=None, key="search_by_observer_name")
         with st.expander("Filter by photometer"):
             st.selectbox("Model", [x.value for x in PhotometerModel], key="search_by_phot_model")
-            st.text_input("Name", value=None, key="search_by_phot_name")
+            st.text_input("Name", value=None, max_chars=16, key="search_by_phot_name")
         st.form_submit_button(
             "**Search**",
             help="Search by any/all filter criteria",
