@@ -53,25 +53,25 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
 
 
 def selected_obs() -> None:
-    if st.session_state.Observation.selection.rows:
+    if st.session_state.ObservationDF.selection.rows:
         log.debug(
-            "st.session_state.Observation.selection.rows = %s",
-            st.session_state.Observation.selection.rows,
+            "st.session_state.ObservationDF.selection.rows = %s",
+            st.session_state.ObservationDF.selection.rows,
         )
-        row = st.session_state.Observation.selection.rows[0]
+        row = st.session_state.ObservationDF.selection.rows[0]
         log.debug("st.session_state.obs_list[row] = %s", st.session_state.obs_list[row])
-        st.session_state.obs_tag = st.session_state.obs_list[row][
-            1
-        ]  # obst tag is the seccond item in the row
+        # obs_tag is the seccnd item in the row
+        st.session_state.obs_tag = st.session_state.obs_list[row][1]
 
 
 def procesa() -> None:
-    search_results = {k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")}
-    dt0 = datetime.combine(search_results["search_date_range"][0], datetime.min.time())
-    dt1 = datetime.combine(search_results["search_date_range"][1], datetime.min.time())
-    search_results["search_date_range"] = (dt0, dt1)
-    st.write(search_results)
-
+    search_results = {
+        k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")
+    }
+    dt0 = datetime.combine(st.session_state["search_date_range"][0], datetime.min.time())
+    dt1 = datetime.combine(st.session_state["search_date_range"][1], datetime.min.time())
+    st.session_state["search_date_range"] = (dt0, dt1)
+    st.write(st.session_state)
 
 
 # ----------------------
@@ -91,9 +91,9 @@ st.write(f"""
 
     The most recent {min(N, OBSERVATION_LIMIT)} observations are displayed:
     """)
-event = st.dataframe(
+st.dataframe(
     st.session_state.obs_list,
-    key="Observation",
+    key="ObservationDF",
     hide_index=True,
     on_select=selected_obs,
     selection_mode="single-row",
@@ -112,18 +112,26 @@ if "obs_tag" in st.session_state:
 with st.form("Search", clear_on_submit=True):
     st.write("## Observations finder")
     with st.expander("Filter by date range"):
-        ancient = min_value = datetime(2000, 1, 1,0,0,0)
-        today = datetime.now().replace(hour=0, minute=0, second=0,microsecond=0)
+        ancient = min_value = datetime(2000, 1, 1, 0, 0, 0)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         year_ago = today - relativedelta(years=1)
         month_ago = today - relativedelta(months=1)
         from_date = st.date_input(
-            "Range", value=(month_ago, today), min_value=ancient, max_value=today, key="search_date_range"
+            "Range",
+            value=(month_ago, today),
+            min_value=ancient,
+            max_value=today,
+            key="search_date_range",
         )
     with st.expander("Filter by location range"):
         c1, c2 = st.columns(2)
         with c1:
             longitude1 = st.number_input(
-                "From Longitude", value=None, min_value=-180, max_value=180, key="search_from_longitude"
+                "From Longitude",
+                value=None,
+                min_value=-180,
+                max_value=180,
+                key="search_from_longitude",
             )
             longitude2 = st.number_input(
                 "To Longitude", value=None, min_value=-180, max_value=180, key="search_to_longitude"
@@ -137,19 +145,19 @@ with st.form("Search", clear_on_submit=True):
             )
     with st.expander("Filter by observer"):
         option = st.selectbox(
-            "Observer type",
-            [x.value for x in ObserverType],  key="search_by_observer_type"
+            "Observer type", [x.value for x in ObserverType], key="search_by_observer_type"
         )
         st.text_input("Name", value=None, key="search_by_observer_name")
     with st.expander("Filter by photometer"):
         option = st.selectbox(
-            "Model",
-            [x.value for x in PhotometerModel],  key="search_by_phot_model"
+            "Model", [x.value for x in PhotometerModel], key="search_by_phot_model"
         )
         st.text_input("Name", value=None, key="search_by_photometer")
     st.form_submit_button(
         "**Search**",
         help="Search by any/all filter criteria",
         icon=":material/search:",
+        type="primary",
+        use_container_width=True,
         on_click=procesa,
     )
