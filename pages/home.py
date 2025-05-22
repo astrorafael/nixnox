@@ -107,9 +107,9 @@ if "obs_tag" in st.session_state:
 with st.form("Search"):
     st.write("## Observations finder")
     with st.expander("Filter by date range"):
-        ancient = min_value = datetime.date(2000, 1, 1)
-        today = datetime.date.today()
-        year_ago = datetime.date.today() - relativedelta(years=1)
+        ancient = min_value = datetime.datetime(2000, 1, 1,0,0,0)
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0,microsecond=0)
+        year_ago = today - relativedelta(years=1)
         from_date = st.date_input(
             "From", value=year_ago, min_value=ancient, max_value=today, key="from_date"
         )
