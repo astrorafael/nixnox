@@ -24,6 +24,13 @@ from timezonefinder import TimezoneFinder
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
+
+# -----------
+# Own imports
+# -----------
+
+from . import PopulationCentre
+
 # ----------------
 # Module constants
 # ----------------
@@ -109,21 +116,21 @@ def geolocate(longitude: float, latitude: float) -> Optional[dict[str, Any]]:
         result["place_type"] = None
         log.warn("No valid Nominatim place name to suggest")
 
-    for location_type in ("village", "town", "city", "municipality"):
+    for location_type in [loc.value for loc in PopulationCentre]: # Village, town, city, etc.
         try:
-            result["town"] = metadata[location_type]
-            result["town_type"] = location_type
+            result["pop_centre"] = metadata[location_type]
+            result["pop_centre_type"] = PopulationCentre(location_type)
         except KeyError:
-            result["town"] = None
-            result["town_type"] = None
+            result["pop_centre"] = None
+            result["pop_centre_type"] = None
             continue
         else:
             found = True
             break
     if found:
-        log.info("Nominatim town name proposal: %s (%s)", result["town"], result["town_type"])
+        log.info("Nominatim population centre name proposal: %s (%s)", result["pop_centre"], result["pop_centre_type"])
     else:
-        log.warn("No valid Nominatim town name to suggest")
+        log.warn("No valid Nominatim population centre name to suggest")
 
     for province_type in ("state_district", "province"):
         try:

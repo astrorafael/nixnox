@@ -92,7 +92,7 @@ def obs_summary_search(session, cond: dict = None):
             and cond["search_by_location_scope"] == "Population Centre"
         ):
             q = q.where(
-                Location.town.like("%" + cond["search_by_location_name"] + "%"),
+                Location.population_centre.like("%" + cond["search_by_location_name"] + "%"),
             )
         else:
             # All coords must be not None

@@ -50,4 +50,10 @@ class ValidState(Enum):
     CURRENT = "Current"
     EXPIRED = "Expired"
 
+# As returned by Nominatim search
+class PopulationCentre(Enum):
+    VILLAGE = "village"
+    MUNICIP = "municipality"
+    TOWN = "town"
+    CITY = "city"
   

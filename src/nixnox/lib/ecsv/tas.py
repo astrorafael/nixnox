@@ -40,6 +40,7 @@ from .. import (
     Humidity,
     Timestamp,
     Coordinates,
+    PopulationCentre,
     ValidState,
 )
 from ..location import geolocate
@@ -88,7 +89,7 @@ class TASLoader:
         t_initial = datetime.strptime(min(self.table["UT_Datetime"]), self.tstamp_fmt)
         t_final = datetime.strptime(max(self.table["UT_Datetime"]), self.tstamp_fmt)
         delta_t = (t_final - t_initial).total_seconds()
-        mid_time = (t_initial + timedelta(seconds=(delta_t/2)+0.5)).replace(microsecond=0)
+        mid_time = (t_initial + timedelta(seconds=(delta_t / 2) + 0.5)).replace(microsecond=0)
         q = select(Observation).where(Observation.digest == digest)
         obs = self.session.scalars(q).one_or_none()
         if obs:
@@ -100,7 +101,7 @@ class TASLoader:
                 temperature_1=temperature,
                 temperature_meas=temperature_meas,
                 humidity_meas=humidity_meas,
-                timestamp_1 = mid_time,
+                timestamp_1=mid_time,
                 timestamp_meas=timestamp_meas,
             )
         return obs
@@ -130,7 +131,7 @@ class TASLoader:
                 longitude=longitude,
                 latitude=latitude,
             )
-            result["town"] = result["town"] or "Unknown"
+            result["pop_centre"] = result["pop_centre"] or "Unknown"
             result["sub_region"] = result["sub_region"] or "Unknown"
             result["region"] = result["region"] or "Unknown"
             result["country"] = result["country"] or "Unknown"
@@ -140,7 +141,8 @@ class TASLoader:
                 latitude=result["latitude"],
                 masl=masl,
                 coords_meas=coords_meas,
-                town=result["town"],
+                population_centre=result["pop_centre"],
+                population_centre_type=result["pop_centre_type"],
                 sub_region=result["sub_region"],
                 region=result["region"],
                 country=result["country"],
@@ -274,13 +276,19 @@ class TASImporter:
         q = select(Location).where(Location.longitude == longitude, Location.latitude == latitude)
         location = self.session.scalars(q).one_or_none()
         if location is None:
+            pop_centre_type = (
+                PopulationCentre(loc_dict["population_centre"])
+                if loc_dict["population_centre"]
+                else None
+            )
             location = Location(
                 place=loc_dict["place"],
                 longitude=longitude,
                 latitude=latitude,
                 masl=float(loc_dict["masl"]),
                 coords_meas=Coordinates(loc_dict["coords_meas"]),
-                town=loc_dict["town"],
+                population_centre=loc_dict["population_centre"],
+                population_centre_type=pop_centre_type,
                 sub_region=loc_dict["sub_region"],
                 region=loc_dict["region"],
                 country=loc_dict["country"],

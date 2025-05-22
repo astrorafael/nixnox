@@ -40,6 +40,7 @@ from .. import (
     Humidity,
     Coordinates,
     Timestamp,
+    PopulationCentre,
 )
 
 # ================
@@ -134,10 +135,18 @@ CoordinatesType: Enum = Enum(
     values_callable=lambda x: [e.value.title() for e in x],
 )
 
-
+PopulationCentreType: Enum = Enum(
+    PopulationCentre,
+    name="population_type",
+    create_constraint=False,
+    metadata=Model.metadata,
+    validate_strings=True,
+    values_callable=lambda x: [e.value.title() for e in x],
+)
 # ------------------
 # Auxiliar functions
 # ------------------
+
 
 def observer_name(observer: dict) -> str:
     """Handy formatting tool to get a good observer name"""
@@ -150,6 +159,7 @@ def observer_name(observer: dict) -> str:
         short_affil = observer["acronym"] if observer["acronym"] is not None else ""
     affiliation = short_affil or long_affil
     return f"{name} ({affiliation})" if affiliation else name
+
 
 # --------
 # Entities
@@ -235,27 +245,29 @@ class Observer(Model):
 
     def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
-        r =  OrderedDict(
+        r = OrderedDict(
             (key, self.__dict__[key])
             for key in (
-            "type",
-            "name",
-            "nickname",
-            "affiliation",
-            "acronym",
-            "website_url",
-            "email",
-            "valid_since",
-            "valid_until",
-            "valid_state",
-        ))
+                "type",
+                "name",
+                "nickname",
+                "affiliation",
+                "acronym",
+                "website_url",
+                "email",
+                "valid_since",
+                "valid_until",
+                "valid_state",
+            )
+        )
         # Patch enum & date values
         r["type"] = self.type.value
         r["valid_since"] = self.valid_since.isoformat()
         r["valid_until"] = self.valid_until.isoformat()
         r["valid_state"] = self.valid_state.value
         return r
- 
+
+
 class Location(Model):
     __tablename__ = "nx_location_t"
 
@@ -271,7 +283,10 @@ class Location(Model):
     # Descriptive name of this unitque location
     place: Mapped[str] = mapped_column(String(255), nullable=False)
     # village, town, city, etc name
-    town: Mapped[str] = mapped_column(String(255), nullable=False)
+    population_centre: Mapped[str] = mapped_column(String(255), nullable=False)
+    population_centre_type: Mapped[Optional[PopulationCentreType]] = mapped_column(
+        PopulationCentreType, nullable=True
+    )
     # province, county, etc..
     sub_region: Mapped[str] = mapped_column(String(255), nullable=False)
     # federal state, comunidad autonomica, etc..
@@ -297,7 +312,8 @@ class Location(Model):
                 "masl",
                 "coords_meas",
                 "place",
-                "town",
+                "population_centre",
+                "population_centre_type",
                 "sub_region",
                 "region",
                 "country",
@@ -306,6 +322,9 @@ class Location(Model):
         )
         # Patch enum & date values
         r["coords_meas"] = self.coords_meas.value
+        r["population_centre_type"] = (
+            self.population_centre_type.value if self.population_centre_type else None
+        )
         return r
 
 
