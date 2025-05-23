@@ -116,6 +116,24 @@ web:
     set -exuo pipefail
     NX_ENV=dev uv run streamlit run web_app.py --logger.level=debug
 
+sqld:
+    #!/usr/bin/env bash   
+    set -exuo pipefail
+    SQLD_NODE=primary ./sqld --no-welcome --disable-metrics --enable-http-console \
+    --enable-namespaces --admin-listen-addr 127.0.0.1:8082
+
+# create a namespace in LibSQL
+# we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
+# and DATABASE_URL=sqlite+libsql://nixnox.db.sarna.dev:8080
+
+namespace name="nixnox":
+    #!/usr/bin/env bash   
+    set -exuo pipefail
+    namespace={{name}}
+    curl -X POST http://localhost:8082/v1/namespaces/${namespace}/create \
+    -H "Content-Type: application/json" -d '{}'
+    echo ""
+
 # =======================================================================
 
     
@@ -143,6 +161,9 @@ env-backup bak_dir:
     cp *.ecsv {{ bak_dir }}
     cp *.txt {{ bak_dir }}
     cp -r .streamlit {{ bak_dir }}
+    # This is experimental LibSQL Daemon
+    cp sqld {{ bak_dir }}
+    cp -r data.sqld {{ bak_dir }}
   
 [private]
 env-restore bak_dir:
@@ -157,3 +178,6 @@ env-restore bak_dir:
     cp {{ bak_dir }}/*.ecsv .
     cp {{ bak_dir }}/*.txt .
     cp -r {{ bak_dir }}/.streamlit .
+    # This is experimental LibSQL Daemon
+    cp sqld {{ bak_dir }}/sqld .
+    cp -r {{ bak_dir }}/data.sqld .
