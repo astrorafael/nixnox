@@ -16,7 +16,7 @@ from argparse import ArgumentParser
 # Third-party library imports
 # ----------------------------
 
-from lica.validators import vdate, vdir
+from lica.validators import vdate
 
 # --------------
 # local imports
@@ -64,6 +64,17 @@ def seconds() -> ArgumentParser:
         choices=[i for i in range(1,61)],
         default=1,
         help="Default seconds resolution (default %(default)s)",
+    )
+    return parser
+
+def batch() -> ArgumentParser:
+    parser = ArgumentParser(add_help=False)
+    parser.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=10000,
+        help="Date/Time database transaction batch size (default %(default)s)",
     )
     return parser
 

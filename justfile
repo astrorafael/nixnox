@@ -84,8 +84,7 @@ anew verbose="":
     set -exuo pipefail
     uv sync --reinstall
     uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
-    uv run nx-db-populate --console --verbose  --trace --log-file nixnox.log {{ verbose }} all
-
+    uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
 
 # ========================= #
 # QUCK COMMAND LINE TESTING #
@@ -121,8 +120,8 @@ sqld target="debug":
     #!/usr/bin/env bash   
     set -exuo pipefail
     SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics --enable-http-console \
-    --enable-namespaces #--admin-listen-addr 127.0.0.1:8082 \
-    ##--max-response-size 30MB --max-total-response-size 60MB --soft-heap-limit-mb 40
+    --enable-namespaces --admin-listen-addr 127.0.0.1:8082
+    
 
 
 # create a namespace in LibSQL

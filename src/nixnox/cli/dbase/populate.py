@@ -10,19 +10,15 @@
 
 import logging
 from datetime import datetime, timedelta
+from itertools import batched
 from argparse import ArgumentParser, Namespace
 
 # -------------------
 # Third party imports
 # -------------------
-import decouple
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
 
 from lica.sqlalchemy import sqa_logging
-#from lica.sqlalchemy.dbase import Session
+from lica.sqlalchemy.dbase import Session
 from lica.cli import execute
 
 # --------------
@@ -48,28 +44,6 @@ DESCRIPTION = "NIXNOX Database initial populate tool"
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
 
-
-url = decouple.config("DATABASE_URL")
-
-# 'check_same_thread' is only needed in SQLite ....
-engine = create_engine(url, pool_pre_ping=True, connect_args={"check_same_thread": False, "timeout": 120})
-
-
-# This is needed by the timeut issue in LibSQL  WebSocket 
-# engine = create_engine(
-#     url,
-#     poolclass=QueuePool,
-#     pool_size=1,
-#     pool_pre_ping=True,
-#     max_overflow=10,
-#     pool_timeout=300,
-#     pool_recycle=1800,
-#     connect_args={"check_same_thread": False, "timeout": 120},
-#     insertmanyvalues_page_size=10,
-#     echo=False
-# )
-
-Session = sessionmaker(bind=engine, expire_on_commit=True)
 
 # -------------------
 # Auxiliary functions
@@ -146,8 +120,11 @@ def cli_populate_date(session: Session, args: Namespace) -> None:
         )
         for d in date_iterator
     )
-    for obj in date_objs:
-        session.add(obj)
+    for i, batch in enumerate(batched(date_objs, args.batch_size), start=1):
+        log.info("Writing Date batch #%d (%d records)", i, len(batch))
+        with session.begin():
+            for obj in batch:
+                session.add(obj)
 
 
 def cli_populate_time(session: Session, args: Namespace) -> None:
@@ -164,8 +141,11 @@ def cli_populate_time(session: Session, args: Namespace) -> None:
         )
         for t in time_iterator
     )
-    for obj in time_objs:
-        session.add(obj)
+    for i, batch in enumerate(batched(time_objs, args.batch_size), start=1):
+        log.info("Writing Time batch #%d (%d records)", i, len(batch))
+        with session.begin():
+            for obj in batch:
+                session.add(obj)
 
 
 def cli_populate_location(session: Session, args: Namespace) -> None:
@@ -184,7 +164,8 @@ def cli_populate_location(session: Session, args: Namespace) -> None:
         country="Unknown",
         timezone="Etc/UTC",
     )
-    session.add(location)
+    with session.begin():
+        session.add(location)
 
 
 def cli_populate_observer(session: Session, args: Namespace) -> None:
@@ -197,30 +178,33 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
         valid_until=datetime(year=2999, month=12, day=31),
         valid_state=ValidState.CURRENT,
     )
-    session.add(observer)
+    with session.begin():
+        session.add(observer)
 
 
 def cli_populate_all(session: Session, args: Namespace) -> None:
     cli_populate_observer(session, args)
     cli_populate_location(session, args)
+    cli_populate_date(session, args)
     cli_populate_time(session, args)
-    #cli_populate_date(session, args)
 
 
 def add_args(parser: ArgumentParser) -> None:
     subparser = parser.add_subparsers(dest="command", required=True)
     p = subparser.add_parser(
-        "date", parents=[prs.since(), prs.until()], help="Load initial Date values"
+        "date", parents=[prs.since(), prs.until(), prs.batch()], help="Load initial Date values"
     )
     p.set_defaults(func=cli_populate_date)
-    p = subparser.add_parser("time", parents=[prs.seconds()], help="Load initial Time values")
+    p = subparser.add_parser(
+        "time", parents=[prs.seconds(), prs.batch()], help="Load initial Time values"
+    )
     p.set_defaults(func=cli_populate_time)
     p = subparser.add_parser("location", parents=[], help="Load initial Location values")
     p.set_defaults(func=cli_populate_location)
     p = subparser.add_parser("observer", parents=[], help="Load initial Observer values")
     p.set_defaults(func=cli_populate_observer)
     p = subparser.add_parser(
-        "all", parents=[prs.since(), prs.until(), prs.seconds()], help="Load all initial values"
+        "all", parents=[prs.since(), prs.until(), prs.seconds(), prs.batch()], help="Load all initial values"
     )
     p.set_defaults(func=cli_populate_all)
 
@@ -228,8 +212,7 @@ def add_args(parser: ArgumentParser) -> None:
 def cli_main(args: Namespace) -> None:
     sqa_logging(args)
     with Session() as session:
-        with session.begin():
-            args.func(session, args)
+        args.func(session, args)
 
 
 def main():
