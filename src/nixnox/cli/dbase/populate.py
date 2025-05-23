@@ -15,9 +15,14 @@ from argparse import ArgumentParser, Namespace
 # -------------------
 # Third party imports
 # -------------------
+import decouple
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import QueuePool
 
 from lica.sqlalchemy import sqa_logging
-from lica.sqlalchemy.dbase import Session
+#from lica.sqlalchemy.dbase import Session
 from lica.cli import execute
 
 # --------------
@@ -28,11 +33,6 @@ from ... import __version__
 from ..util import parser as prs
 from ...lib import ObserverType, Coordinates, ValidState
 from ...lib.dbase.model import Date, Time, Observer, Location
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import decouple
-from sqlalchemy.pool import QueuePool
 
 # ----------------
 # Module constants
@@ -55,19 +55,20 @@ url = decouple.config("DATABASE_URL")
 #engine = create_engine(url, pool_pre_ping=True, connect_args={"check_same_thread": False})
 
 
-
+# This is needed by the timeut issue in LibSQL  WebSocket 
 engine = create_engine(
     url,
     poolclass=QueuePool,
-    pool_size=5,
+    pool_size=1,
     max_overflow=10,
-    pool_timeout=30,
+    pool_timeout=300,
     pool_recycle=1800,
-    connect_args={"check_same_thread": False},
-    echo=True
+    connect_args={"check_same_thread": False, "timeout": 120},
+    echo=False
 )
 
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=True)
+
 # -------------------
 # Auxiliary functions
 # -------------------
@@ -198,9 +199,9 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
 
 
 def cli_populate_all(session: Session, args: Namespace) -> None:
-    #cli_populate_observer(session, args)
-    #cli_populate_location(session, args)
-    cli_populate_time(session, args)
+    cli_populate_observer(session, args)
+    cli_populate_location(session, args)
+    #cli_populate_time(session, args)
     #cli_populate_date(session, args)
 
 

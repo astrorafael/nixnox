@@ -121,7 +121,8 @@ sqld:
     set -exuo pipefail
     SQLD_NODE=primary ./sqld --no-welcome --disable-metrics --enable-http-console \
     --enable-namespaces --admin-listen-addr 127.0.0.1:8082 \
-    --connection-creation-timeout-sec 120
+    --max-response-size 30MB --max-total-response-size 60MB
+
 
 # create a namespace in LibSQL
 # we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
