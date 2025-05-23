@@ -78,11 +78,21 @@ env-bak drive=def_drive: (check_mnt drive) (env-backup join(drive, "env", projec
 env-rst drive=def_drive: (check_mnt drive) (env-restore join(drive, "env", project))
 
 
-# Starts a new database export migration cycle   
+# Starts a new SQLite database export migration cycle   
 anew verbose="":
     #!/usr/bin/env bash
     set -exuo pipefail
     uv sync --reinstall
+    uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
+    uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
+
+# Starts a new SQLD database export migration cycle
+anew2 verbose="":
+    #!/usr/bin/env bash
+    set -exuo pipefail
+    uv sync --reinstall
+    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create \
+    -H "Content-Type: application/json" -d '{}'
     uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
     uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
 
@@ -123,12 +133,19 @@ sqld target="debug":
     --enable-namespaces --admin-listen-addr 127.0.0.1:8082
     
 
+# wipes out the sqld databases
+sqld-clear target="debug":
+    #!/usr/bin/env bash
+    set -exuo pipefail
+    pkill -f "sqld-{{target}}" || exit 0
+    rm -fr data.sqld
 
 # create a namespace in LibSQL
 # we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
 # and DATABASE_URL=sqlite+libsql://nixnox.db.sarna.dev:8080
 
-namespace name="nixnox":
+# Create a sqld namespace
+sqld-names name="nixnox":
     #!/usr/bin/env bash   
     set -exuo pipefail
     namespace={{name}}

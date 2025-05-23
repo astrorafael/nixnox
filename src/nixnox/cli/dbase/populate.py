@@ -17,8 +17,14 @@ from argparse import ArgumentParser, Namespace
 # Third party imports
 # -------------------
 
+import decouple
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import QueuePool
+
+
 from lica.sqlalchemy import sqa_logging
-from lica.sqlalchemy.dbase import Session
 from lica.cli import execute
 
 # --------------
@@ -44,6 +50,23 @@ DESCRIPTION = "NIXNOX Database initial populate tool"
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
 
+url = decouple.config("DATABASE_URL")
+
+# 'check_same_thread' is an option specific to SQLite.
+engine = create_engine(url, connect_args={"check_same_thread": False, "timeout": 120})
+# engine = create_engine(
+#     url,
+#     poolclass=QueuePool,
+#     pool_size=10,
+#     pool_pre_ping=True,
+#     max_overflow=10,
+#     pool_timeout=300,
+#     pool_recycle=1800,
+#     connect_args={"check_same_thread": False, "timeout": 120},
+#     insertmanyvalues_page_size=1000,
+#     echo=False
+# )
+Session = sessionmaker(bind=engine, expire_on_commit=True)
 
 # -------------------
 # Auxiliary functions
@@ -204,7 +227,9 @@ def add_args(parser: ArgumentParser) -> None:
     p = subparser.add_parser("observer", parents=[], help="Load initial Observer values")
     p.set_defaults(func=cli_populate_observer)
     p = subparser.add_parser(
-        "all", parents=[prs.since(), prs.until(), prs.seconds(), prs.batch()], help="Load all initial values"
+        "all",
+        parents=[prs.since(), prs.until(), prs.seconds(), prs.batch()],
+        help="Load all initial values",
     )
     p.set_defaults(func=cli_populate_all)
 
