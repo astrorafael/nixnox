@@ -28,6 +28,12 @@ from ... import __version__
 from ..util import parser as prs
 from ...lib import ObserverType, Coordinates, ValidState
 from ...lib.dbase.model import Date, Time, Observer, Location
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import decouple
+from sqlalchemy.pool import QueuePool
+
 # ----------------
 # Module constants
 # ----------------
@@ -42,6 +48,26 @@ DESCRIPTION = "NIXNOX Database initial populate tool"
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
 
+
+url = decouple.config("DATABASE_URL")
+
+# 'check_same_thread' is only needed in SQLite ....
+#engine = create_engine(url, pool_pre_ping=True, connect_args={"check_same_thread": False})
+
+
+
+engine = create_engine(
+    url,
+    poolclass=QueuePool,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800,
+    connect_args={"check_same_thread": False},
+    echo=True
+)
+
+Session = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=True)
 # -------------------
 # Auxiliary functions
 # -------------------
@@ -172,10 +198,10 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
 
 
 def cli_populate_all(session: Session, args: Namespace) -> None:
-    cli_populate_observer(session, args)
-    cli_populate_location(session, args)
+    #cli_populate_observer(session, args)
+    #cli_populate_location(session, args)
     cli_populate_time(session, args)
-    cli_populate_date(session, args)
+    #cli_populate_date(session, args)
 
 
 def add_args(parser: ArgumentParser) -> None:
