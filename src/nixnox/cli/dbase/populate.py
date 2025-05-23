@@ -52,22 +52,24 @@ log = logging.getLogger(__name__.split(".")[-1])
 url = decouple.config("DATABASE_URL")
 
 # 'check_same_thread' is only needed in SQLite ....
-#engine = create_engine(url, pool_pre_ping=True, connect_args={"check_same_thread": False})
+engine = create_engine(url, pool_pre_ping=True, connect_args={"check_same_thread": False, "timeout": 120})
 
 
 # This is needed by the timeut issue in LibSQL  WebSocket 
-engine = create_engine(
-    url,
-    poolclass=QueuePool,
-    pool_size=1,
-    max_overflow=10,
-    pool_timeout=300,
-    pool_recycle=1800,
-    connect_args={"check_same_thread": False, "timeout": 120},
-    echo=False
-)
+# engine = create_engine(
+#     url,
+#     poolclass=QueuePool,
+#     pool_size=1,
+#     pool_pre_ping=True,
+#     max_overflow=10,
+#     pool_timeout=300,
+#     pool_recycle=1800,
+#     connect_args={"check_same_thread": False, "timeout": 120},
+#     insertmanyvalues_page_size=10,
+#     echo=False
+# )
 
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=True)
+Session = sessionmaker(bind=engine, expire_on_commit=True)
 
 # -------------------
 # Auxiliary functions
@@ -201,7 +203,7 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
 def cli_populate_all(session: Session, args: Namespace) -> None:
     cli_populate_observer(session, args)
     cli_populate_location(session, args)
-    #cli_populate_time(session, args)
+    cli_populate_time(session, args)
     #cli_populate_date(session, args)
 
 

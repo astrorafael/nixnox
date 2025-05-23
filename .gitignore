@@ -22,5 +22,5 @@ _version.py
 !requirements.txt
 test*.py
 # This is experimental
-sqld
+sqld-*
 data.sqld/

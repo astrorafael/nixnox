@@ -116,12 +116,13 @@ web:
     set -exuo pipefail
     NX_ENV=dev uv run streamlit run web_app.py --logger.level=debug
 
-sqld:
+# Starts SQLDaeemon: debug|release
+sqld target="debug":
     #!/usr/bin/env bash   
     set -exuo pipefail
-    SQLD_NODE=primary ./sqld --no-welcome --disable-metrics --enable-http-console \
-    --enable-namespaces --admin-listen-addr 127.0.0.1:8082 \
-    --max-response-size 30MB --max-total-response-size 60MB
+    SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics --enable-http-console \
+    --enable-namespaces #--admin-listen-addr 127.0.0.1:8082 \
+    ##--max-response-size 30MB --max-total-response-size 60MB --soft-heap-limit-mb 40
 
 
 # create a namespace in LibSQL
@@ -164,7 +165,8 @@ env-backup bak_dir:
     cp *.txt {{ bak_dir }}
     cp -r .streamlit {{ bak_dir }}
     # This is experimental LibSQL Daemon
-    cp sqld {{ bak_dir }}
+    [ ! -f {{ bak_dir }}/sqld-debug ] && cp sqld-debug {{ bak_dir }}
+    [ ! -f {{ bak_dir }}/sqld-release ] && cp sqld-release {{ bak_dir }}
     cp -r data.sqld {{ bak_dir }}
   
 [private]
@@ -181,5 +183,6 @@ env-restore bak_dir:
     cp {{ bak_dir }}/*.txt .
     cp -r {{ bak_dir }}/.streamlit .
     # This is experimental LibSQL Daemon
-    cp sqld {{ bak_dir }}/sqld .
+    [ -f sqld-release ] && cp {{ bak_dir }}/sqld-release .
+    [ -f sqld-debug ] && cp {{ bak_dir }}/sqld-debug .
     cp -r {{ bak_dir }}/data.sqld .
