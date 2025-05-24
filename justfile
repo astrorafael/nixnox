@@ -94,8 +94,7 @@ anew2 verbose="":
     set -exuo pipefail
     uv sync --reinstall
     curl -X DELETE http://localhost:8082/v1/namespaces/nixnox
-    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create -d '{}' \
-    -H "Content-Type: application/json" 
+    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create -d '{}' -H "Content-Type: application/json" 
     uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
     uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
 
@@ -132,8 +131,8 @@ web:
 sqld target="debug":
     #!/usr/bin/env bash   
     set -exuo pipefail
-    SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics --enable-http-console \
-    --enable-namespaces --admin-listen-addr 127.0.0.1:8082
+    SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics \
+    --admin-listen-addr 127.0.0.1:8082 --enable-namespaces
 
 # =======================================================================
 
