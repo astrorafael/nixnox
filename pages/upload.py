@@ -36,4 +36,5 @@ if data:
         else:
             st.info(f"Observation upload to database: {observation.identifier}", icon="ℹ️")
             time.sleep(2)
+            del st.session_state.result_table
             st.switch_page(os.path.join("pages", "home.py"))
