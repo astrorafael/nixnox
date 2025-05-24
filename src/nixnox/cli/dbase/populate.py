@@ -21,7 +21,6 @@ import decouple
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
 
 
 from lica.sqlalchemy import sqa_logging
@@ -50,10 +49,13 @@ DESCRIPTION = "NIXNOX Database initial populate tool"
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
 
+# We prefer not to import the Session class from lica library
+# to experiment with different engine ad Session params
 url = decouple.config("DATABASE_URL")
 
 # 'check_same_thread' is an option specific to SQLite.
 engine = create_engine(url, connect_args={"check_same_thread": False, "timeout": 120})
+
 # engine = create_engine(
 #     url,
 #     poolclass=QueuePool,
@@ -66,6 +68,7 @@ engine = create_engine(url, connect_args={"check_same_thread": False, "timeout":
 #     insertmanyvalues_page_size=1000,
 #     echo=False
 # )
+
 Session = sessionmaker(bind=engine, expire_on_commit=True)
 
 # -------------------
