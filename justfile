@@ -87,12 +87,15 @@ anew verbose="":
     uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
 
 # Starts a new SQLD database export migration cycle
+# we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
+# and DATABASE_URL=sqlite+libsql://nixnox.db.sarna.dev:8080
 anew2 verbose="":
     #!/usr/bin/env bash
     set -exuo pipefail
     uv sync --reinstall
-    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create \
-    -H "Content-Type: application/json" -d '{}'
+    curl -X DELETE http://localhost:8082/v1/namespaces/nixnox
+    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create -d '{}' \
+    -H "Content-Type: application/json" 
     uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
     uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
 
@@ -125,33 +128,12 @@ web:
     set -exuo pipefail
     NX_ENV=dev uv run streamlit run web_app.py --logger.level=debug
 
-# Starts SQLDaeemon: debug|release
+# Starts LibSQL sqld server: debug|release
 sqld target="debug":
     #!/usr/bin/env bash   
     set -exuo pipefail
     SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics --enable-http-console \
     --enable-namespaces --admin-listen-addr 127.0.0.1:8082
-    
-
-# wipes out the sqld databases
-sqld-clear target="debug":
-    #!/usr/bin/env bash
-    set -exuo pipefail
-    pkill -f "sqld-{{target}}" || exit 0
-    rm -fr data.sqld
-
-# create a namespace in LibSQL
-# we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
-# and DATABASE_URL=sqlite+libsql://nixnox.db.sarna.dev:8080
-
-# Create a sqld namespace
-sqld-names name="nixnox":
-    #!/usr/bin/env bash   
-    set -exuo pipefail
-    namespace={{name}}
-    curl -X POST http://localhost:8082/v1/namespaces/${namespace}/create \
-    -H "Content-Type: application/json" -d '{}'
-    echo ""
 
 # =======================================================================
 
