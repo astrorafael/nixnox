@@ -8,3 +8,7 @@
 * desplegar docker en la respberry
 * cerfificado real de stars4all?
 * Authorised users?
+* LibSQL:
+	- docker
+	- consult error to forum
+
