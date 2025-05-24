@@ -89,14 +89,15 @@ anew verbose="":
 # Starts a new SQLD database export migration cycle
 # we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
 # and DATABASE_URL=sqlite+libsql://nixnox.db.sarna.dev:8080
-anew2 verbose="":
+anew2 env="devel":
     #!/usr/bin/env bash
     set -exuo pipefail
+    env={{env}}
     uv sync --reinstall
-    curl -X DELETE http://localhost:8082/v1/namespaces/nixnox
-    curl -X POST http://localhost:8082/v1/namespaces/nixnox/create -d '{}' -H "Content-Type: application/json" 
-    uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
-    uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
+    curl -X DELETE http://localhost:8082/v1/namespaces/${env}
+    curl -X POST http://localhost:8082/v1/namespaces/${env}/create -d '{}' -H "Content-Type: application/json" 
+    uv run nx-db-schema --console --log-file nixnox.log
+    uv run nx-db-populate --console --trace --log-file nixnox.log all --batch-size 25000
 
 # ========================= #
 # QUCK COMMAND LINE TESTING #
