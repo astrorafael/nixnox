@@ -9,13 +9,14 @@ import time
 # ---------
 
 import streamlit as st
-
+import streamlit.logger
 # ---------------
 # Other libraries
 # ---------------
 
 import nixnox.lib.ecsv as nx
 
+log = streamlit.logger.get_logger(__name__)
 
 # Database connection
 conn = st.connection("env:NX_ENV", type="sql")
@@ -26,7 +27,7 @@ data = st.file_uploader("*ECSV File only!*", type=["ecsv"])
 if data:
     with conn.session as session:
         try:
-            observation = nx.uploader(session, data)
+            observation = nx.uploader(session, data, log=log)
         except nx.excp.AlreadyExistsError as e:
             observation = e.args[0]
             st.error("Error: observation already exists in the database", icon="🚨")

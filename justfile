@@ -84,7 +84,7 @@ anew verbose="":
     set -exuo pipefail
     uv sync --reinstall
     uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
-    uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 25000
+    uv run nx-db-populate --console --trace --log-file nixnox.log {{ verbose }} all --batch-size 50000
 
 # Starts a new SQLD database export migration cycle
 # we need to add 127.0.0.1 *.db.sarna.dev to /etc/local/hosts
@@ -132,7 +132,7 @@ web:
 sqld target="debug":
     #!/usr/bin/env bash   
     set -exuo pipefail
-    SQLD_NODE=primary ./sqld-{{target}} --no-welcome --disable-metrics \
+    SQLD_NODE=primary ./sqld-{{target}} --db-path ../data.sqld --no-welcome --disable-metrics \
     --admin-listen-addr 127.0.0.1:8082 --enable-namespaces
 
 # =======================================================================

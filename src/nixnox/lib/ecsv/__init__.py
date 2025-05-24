@@ -40,7 +40,7 @@ from .sqm import SQMLoader
 log = logging.getLogger(__name__.split(".")[-1])
 
 
-def uploader(session: Session, file_obj: BinaryIO, **kwargs) -> Optional[Observation]:
+def uploader(session: Session, file_obj: BinaryIO, log=log, **kwargs) -> Optional[Observation]:
     observation = None
     digest = hashlib.md5(file_obj.read()).hexdigest()
     file_obj.seek(0)  # Rewind to conver it to AstroPy Table
@@ -48,7 +48,7 @@ def uploader(session: Session, file_obj: BinaryIO, **kwargs) -> Optional[Observa
     name = table.meta["keywords"]["photometer"]
     with session.begin():
         subloader = (
-            TASLoader(session, table, kwargs.get("extra_path"))
+            TASLoader(session, table, kwargs.get("extra_path"), log)
             if name.startswith("TAS")
             else SQMLoader(session, table)
         )

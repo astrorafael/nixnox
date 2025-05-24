@@ -52,6 +52,8 @@ from ..dbase.model import (
     Measurement,
 )
 
+from ..location import distance
+
 from .excp import AlreadyExistsError
 
 # ----------------
@@ -59,13 +61,19 @@ from .excp import AlreadyExistsError
 # ----------------
 
 
+class InconsistentCoordinatesError(RuntimeError):
+    """Inconsistent Geographical Coordinates"""
+
+    pass
+
+
 # -----------------------
 # Module global variables
 # -----------------------
 
-
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
+
 
 # -------------------
 # Auxiliary functions
@@ -73,11 +81,12 @@ log = logging.getLogger(__name__.split(".")[-1])
 
 
 class TASLoader:
-    def __init__(self, session: Session, table: Table, extra_path: str):
+    def __init__(self, session: Session, table: Table, extra_path: str, log):
         self.session = session
         self.table = table
         self.tstamp_fmt = "%Y-%m-%d %H:%M:%S"
         self.extra_path = extra_path
+        self.log = log
 
     def observation(self, digest: str) -> Observation:
         filename = self.table.meta["keywords"]["measurements_file"]
@@ -171,6 +180,7 @@ class TASLoader:
         location: Location,
         observer: Observer,
     ) -> Iterable[Measurement]:
+        self._check_coords()
         measurements = list()
         for row in self.table:
             tstamp = datetime.strptime(row["UT_Datetime"], self.tstamp_fmt)
@@ -223,6 +233,16 @@ class TASLoader:
                 for measurement, extra in zip(measurements, extra_table):
                     assert measurement.sequence == int(extra["ind"])
                     measurement.bat_volt = float(extra["Bat"])
+
+    def _check_coords(self, threshold=100):
+        # This is not exact, since we are mixing coordinates
+        # However, in practices this works, as we are calculating an maxcimum error box
+        longitudes = np.sort(self.table["Long"])
+        latitudes = np.sort(self.table["Long"])
+        error_box = distance((longitudes[0], latitudes[0]), (longitudes[-1], latitudes[-1]))
+        self.log.info("Checking geographical coordinates reliability. Error box is %.0f m.", error_box)
+        if error_box > threshold:
+            raise InconsistentCoordinatesError(f"Error box: {error_box} > {threshold}")
 
 
 class TASImporter:
@@ -345,6 +365,7 @@ class TASImporter:
                 bat_volt=row.get("VBat"),
             )
             measurements.append(measurement)
+        self._check_coords()
         return measurements
 
 
