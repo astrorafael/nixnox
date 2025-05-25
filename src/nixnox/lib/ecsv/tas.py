@@ -311,8 +311,8 @@ class TASImporter:
         location = self.session.scalars(q).one_or_none()
         if location is None:
             pop_centre_type = (
-                PopulationCentre(loc_dict["population_centre"])
-                if loc_dict["population_centre"]
+                PopulationCentre(loc_dict["population_centre_type"])
+                if loc_dict["population_centre_type"]
                 else None
             )
             location = Location(
@@ -330,23 +330,46 @@ class TASImporter:
             )
         return location
 
+    def affiliation(self) -> Organization | None:
+        over_dict = self.table.meta["Observer"]
+        obs_type = ObserverType(over_dict["type"])
+        result = None
+        if obs_type == ObserverType.PERSON and over_dict["affiliation"]:
+            affil = over_dict["affiliation"]
+            result = Organization(
+                    name=affil["name"],
+                    acronym=affil["acronym"],
+                    email=affil["acronym"],
+                    website_url=affil["website_url"],
+                )
+        return result
+
+
+
     def observer(self) -> Observer:
         over_dict = self.table.meta["Observer"]
         name = over_dict["name"]
         obs_type = ObserverType(over_dict["type"])
         q = select(Observer).where(Observer.type == obs_type, Observer.name == name)
-        return self.session.scalars(q).one_or_none() or Observer(
-            type=obs_type,
-            name=name,
-            nickname=over_dict["nickname"],
-            affiliation=over_dict["affiliation"],
-            acronym=over_dict["acronym"],
-            email=over_dict["acronym"],
-            website_url=over_dict["website_url"],
-            valid_since=datetime.strptime(over_dict["valid_since"], "%Y-%m-%dT%H:%M:%S"),
-            valid_until=datetime.strptime(over_dict["valid_until"], "%Y-%m-%dT%H:%M:%S"),
-            valid_state=ValidState(over_dict["valid_state"]),
-        )
+        result = self.session.scalars(q).one_or_none()
+        if not result:
+            if obs_type == ObserverType.PERSON:
+                result = Individual(
+                    name=name,
+                    nickname=over_dict["nickname"],
+                    valid_since=datetime.strptime(over_dict["valid_since"], "%Y-%m-%dT%H:%M:%S"),
+                    valid_until=datetime.strptime(over_dict["valid_until"], "%Y-%m-%dT%H:%M:%S"),
+                    valid_state=ValidState(over_dict["valid_state"]),
+                )
+            else:
+                result = Organization(
+                    name=name,
+                    acronym=over_dict["acronym"],
+                    email=over_dict["acronym"],
+                    website_url=over_dict["website_url"],
+                )
+        return result
+            
 
     def measurements(
         self,
@@ -379,7 +402,6 @@ class TASImporter:
                 bat_volt=row.get("VBat"),
             )
             measurements.append(measurement)
-        self._check_coords()
         return measurements
 
 

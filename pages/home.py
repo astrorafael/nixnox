@@ -8,8 +8,6 @@ from datetime import date
 # Third party libraries
 # ---------------------
 
-from dateutil.relativedelta import relativedelta
-
 import streamlit as st
 from streamlit.logger import get_logger
 
@@ -51,7 +49,7 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
         return db.obs_export(session, obs_tag)
 
 
-def selected_obs() -> None:
+def on_selected_obs() -> None:
     if st.session_state.ObservationDF.selection.rows:
         log.debug(
             "st.session_state.ObservationDF.selection.rows = %s",
@@ -63,7 +61,7 @@ def selected_obs() -> None:
         st.session_state.obs_tag = st.session_state.result_table[row][1]
 
 
-def search_database() -> None:
+def on_form_submit() -> None:
     search_conditions = {
         k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")
     }
@@ -79,7 +77,7 @@ def search_database() -> None:
         st.session_state.result_table = result_set
 
 
-def form(on_submit: Callable) -> None:
+def view_form(on_submit: Callable) -> None:
     with st.form("Search", clear_on_submit=True):
         st.write("## Observations finder")
         st.slider("Max. number of results", value=10, min_value=1, max_value=100, key="search_limit")
@@ -165,7 +163,7 @@ def form(on_submit: Callable) -> None:
         )
 
 
-def header(conn) -> None:
+def view_header(conn) -> None:
     st.title("**Available observations**")
     st.write(f"There are {obs_nsummaries(conn)} stored observations available.")
     if "result_table" not in st.session_state:
@@ -176,13 +174,13 @@ def header(conn) -> None:
         N = st.session_state.get("search_limit",10)
         st.write(f"Search displaying {len(table)}/{N}.")
 
-def results(resultset):
+def view_results(resultset):
     #st.write(f"Up to {limit} observations are displayed:")
     st.dataframe(
         st.session_state.result_table,
         key="ObservationDF",
         hide_index=True,
-        on_select=selected_obs,
+        on_select=on_selected_obs,
         selection_mode="single-row",
     )
     if "obs_tag" in st.session_state:
@@ -202,6 +200,6 @@ def results(resultset):
 # ----------------------
 
 conn = st.connection("env:NX_ENV", type="sql")
-header(conn)
-results(resultset=st.session_state.result_table)
-form(on_submit=search_database)
+view_header(conn)
+view_results(resultset=st.session_state.result_table)
+view_form(on_submit=on_form_submit)

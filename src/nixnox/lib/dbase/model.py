@@ -288,7 +288,6 @@ class Individual(Observer):
     observer_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
-
     # Individual full name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Observer nickname for individuals, optional as it shares data with Organozation
@@ -309,7 +308,7 @@ class Individual(Observer):
         "polymorphic_identity": ObserverType.PERSON,
     }
 
-    # Apparntly this is not resolved ith the ORM declaration
+    # Apparently, this can't be resolved in the ORM mapper ...
     affiliation = relationship(
         "Organization",
         foreign_keys=affiliation_id,
@@ -319,6 +318,7 @@ class Individual(Observer):
 
     def to_dict(self) -> OrderedDict:
         r = super().to_dict()
+        r["nickname"] = self.nickname
         r["valid_since"] = self.valid_since.isoformat()
         r["valid_until"] = self.valid_until.isoformat()
         r["valid_state"] = self.valid_state.value
