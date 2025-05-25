@@ -150,17 +150,25 @@ PopulationCentreType: Enum = Enum(
 # Auxiliar functions
 # ------------------
 
+
 def observer_name(observer: dict) -> str:
     """Handy formatting tool to get a good observer name"""
     name = observer["name"]
     if ObserverType(observer["type"]) == ObserverType.PERSON:
-        long_affil = observer["affiliation"] if observer["affiliation"] is not None else ""
-        short_affil = observer["acronym"] if observer["acronym"] is not None else ""
+        if observer["affiliation"] is not None:
+            long_affil = observer["affiliation"]["name"]
+            short_affil = (
+                observer["affiliation"]["acronym"]
+                if observer["affiliation"]["acronym"] is not None
+                else ""
+            )
+            affiliation = short_affil or long_affil
+            result = f"{name} ({affiliation})"
+        else:
+            result = name
     else:
-        long_affil = ""
-        short_affil = observer["acronym"] if observer["acronym"] is not None else ""
-    affiliation = short_affil or long_affil
-    return f"{name} ({affiliation})" if affiliation else name
+        result = f"{name} ({observer['acronym']})" if observer["acronym"] else name
+    return result
 
 
 # --------
@@ -248,6 +256,7 @@ class Observer(Model):
         r["type"] = self.type.value
         return r
 
+
 class Organization(Observer):
     observer_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
@@ -275,7 +284,6 @@ class Organization(Observer):
         return r
 
 
-
 class Individual(Observer):
     observer_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
@@ -300,14 +308,14 @@ class Individual(Observer):
     __mapper_args__ = {
         "polymorphic_identity": ObserverType.PERSON,
     }
-    
+
     # Apparntly this is not resolved ith the ORM declaration
     affiliation = relationship(
         "Organization",
         foreign_keys=affiliation_id,
         remote_side=observer_id,
     )
-    #affiliation: Mapped[Optional["Organization"]] = relationship()
+    # affiliation: Mapped[Optional["Organization"]] = relationship()
 
     def to_dict(self) -> OrderedDict:
         r = super().to_dict()
@@ -315,17 +323,11 @@ class Individual(Observer):
         r["valid_until"] = self.valid_until.isoformat()
         r["valid_state"] = self.valid_state.value
         if self.affiliation:
-            a = self.affiliation.to_dict()
-            r["affiliation"] = a["name"]
-            r["acronym"] = a["acronym"]
-            r["email"] = a["email"]
-            r["website_url"] = a["website_url"]
+            r["affiliation"] = self.affiliation.to_dict()
         else:
             r["affiliation"] = None
-            r["acronym"] = None
-            r["email"] = None
-            r["website_url"] = None
         return r
+
 
 class Location(Model):
     __tablename__ = "location_t"

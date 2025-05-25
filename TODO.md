@@ -11,4 +11,4 @@
 * LibSQL:
 	- docker
 	- consult error to forum (write an example with SQLAlchemy and capture errors in server)
-* check geo coords consistency in TAS
+* check geo coords consistency in TAS (mejorar lo hecho?)
