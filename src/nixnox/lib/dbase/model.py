@@ -62,7 +62,10 @@ Model = declarative_base(metadata=metadata)
 # Additional conveniente types for enumerations
 # ---------------------------------------------
 
-ObserverEnum: Enum = Enum(
+# These are really Column declarations
+# They are needed on the RHS of the ORM model, in mapped_column()
+
+ObserverCol: Enum = Enum(
     ObserverType,
     name="observer_type",
     create_constraint=False,
@@ -71,7 +74,7 @@ ObserverEnum: Enum = Enum(
     values_callable=lambda x: [e.value.title() for e in x],
 )
 
-PhotModelType: Enum = Enum(
+PhotometerModelCol: Enum = Enum(
     PhotometerModel,
     name="model_type",
     create_constraint=False,
@@ -217,24 +220,14 @@ class Observer(Model):
 
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
-    type: Mapped[ObserverEnum] = mapped_column(ObserverEnum, nullable=False)
-
-    # Individual full name
+    #type: Mapped[ObserverCol] = mapped_column(ObserverCol, nullable=False)
+    type: Mapped[ObserverType] = mapped_column(ObserverCol, nullable=False)
+    # Individual/Organoization full name
     name: Mapped[str] = mapped_column(String(255))
 
     __mapper_args__ = {
         "polymorphic_on": "type",
     }
-
-    # These columns are here because of the unique constraint
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(name, valid_since),
-        {"extend_existing": True},  # extend_existing is for streamlit only :-(
-    )
 
     def __repr__(self) -> str:
         return str(self.to_dict())
@@ -263,29 +256,35 @@ class Observer(Model):
         r["valid_state"] = self.valid_state.value
         return r
 
+
 class Individual(Observer):
-    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"), primary_key=True,  use_existing_column=True)
-   
+    observer_id: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
+    )
+
     # Individual full name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
-    # Observer nickname for indivoiduals
-    nickname: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
-    # Observer (individual) affiliation (an organization name)
-    affiliation: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=False, use_existing_column=True)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False, use_existing_column=True)
-    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=False, use_existing_column=True)
+    # Observer nickname for individuals, optional as it shares data with Organozation
+    nickname: Mapped[str] = mapped_column(String(12), nullable=True)
+    # Observer (individual) affiliation to an organization name
+    affiliation: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), nullable=True
+    )
+
+    # They are optional because they share table with Organization
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=True)
 
     __mapper_args__ = {
-        "polymorphic_identity": ObserverType.PERSON.value,
+        "polymorphic_identity": ObserverType.PERSON,
     }
-    
 
-   
 
 class Organization(Observer):
-    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"), primary_key=True,  use_existing_column=True)
+    observer_id: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
+    )
     # Organization name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Organization acronym
@@ -297,9 +296,8 @@ class Organization(Observer):
     # Version control attributes for Individuals that change affiliations
 
     __mapper_args__ = {
-        "polymorphic_identity": ObserverType.ORG.value,
+        "polymorphic_identity": ObserverType.ORG,
     }
-    
 
 
 class Location(Model):
@@ -367,7 +365,7 @@ class Photometer(Model):
 
     phot_id: Mapped[int] = mapped_column(primary_key=True)
     # Either TAS or SQM
-    model: Mapped[PhotModelType] = mapped_column(PhotModelType)
+    model: Mapped[PhotometerModel] = mapped_column(PhotometerModelCol)
     # Photometer name
     name: Mapped[str] = mapped_column(String(10))
     # Photometer sensor model

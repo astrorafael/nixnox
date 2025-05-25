@@ -32,8 +32,8 @@ from lica.cli import execute
 
 from ... import __version__
 from ..util import parser as prs
-from ...lib import ObserverType, Coordinates, ValidState
-from ...lib.dbase.model import Date, Time, Observer, Location
+from ...lib import Coordinates
+from ...lib.dbase.model import Date, Time, Organization, Location
 
 # ----------------
 # Module constants
@@ -196,14 +196,7 @@ def cli_populate_location(session: Session, args: Namespace) -> None:
 
 def cli_populate_observer(session: Session, args: Namespace) -> None:
     log.info("Generating Default Observer Location value")
-    observer = Observer(
-        observer_id=-1,
-        type=ObserverType.ORG,
-        name="Unknown",
-        valid_since=datetime(year=2000, month=1, day=1),
-        valid_until=datetime(year=2999, month=12, day=31),
-        valid_state=ValidState.CURRENT,
-    )
+    observer = Organization(observer_id=-1, name="Unknown")
     with session.begin():
         session.add(observer)
 
