@@ -220,13 +220,18 @@ class Observer(Model):
 
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
-    #type: Mapped[ObserverCol] = mapped_column(ObserverCol, nullable=False)
+    # type: Mapped[ObserverCol] = mapped_column(ObserverCol, nullable=False)
     type: Mapped[ObserverType] = mapped_column(ObserverCol, nullable=False)
     # Individual/Organoization full name
     name: Mapped[str] = mapped_column(String(255))
 
+    __table_args__ = (
+        {"extend_existing": True},  # needed for streamlit only :-(
+    )
+
     __mapper_args__ = {
         "polymorphic_on": "type",
+        #"polymorphic_identity": ObserverType.GENERIC,
     }
 
     def __repr__(self) -> str:
@@ -235,7 +240,7 @@ class Observer(Model):
     def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
         r = OrderedDict(
-            (key, self.__dict__[key])
+            (key, self.__dict__.get(key))
             for key in (
                 "type",
                 "name",
@@ -265,16 +270,18 @@ class Individual(Observer):
     # Individual full name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Observer nickname for individuals, optional as it shares data with Organozation
-    nickname: Mapped[str] = mapped_column(String(12), nullable=True)
+    nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)
     # Observer (individual) affiliation to an organization name
     affiliation: Mapped[int] = mapped_column(
-        ForeignKey("observer_t.observer_id"), nullable=True
+        ForeignKey("observer_t.observer_id"), nullable=True, use_existing_column=True
     )
 
     # They are optional because they share table with Organization
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=True)
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(
+        ValidStateType, nullable=True, use_existing_column=True
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": ObserverType.PERSON,
@@ -288,11 +295,11 @@ class Organization(Observer):
     # Organization name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Organization acronym
-    acronym: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
     # Individual/Organization website URL
-    website_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    website_url: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
     # Individual/Organization contact email
-    email: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
     # Version control attributes for Individuals that change affiliations
 
     __mapper_args__ = {

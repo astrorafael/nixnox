@@ -47,6 +47,7 @@ from ..location import geolocate
 from ..dbase.model import (
     Photometer,
     Observer,
+    Individual,
     Observation,
     Location,
     Measurement,
@@ -160,14 +161,17 @@ class TASLoader:
         return location
 
     def observer(self) -> Observer:
+        # we need to discreiminate between persons & organizations here
+        # but for the time nbeing they are all persons
         name = self.table.meta["keywords"]["author"]
+        
+        # This must be converted into an Organization ...
         affiliation = self.table.meta["keywords"].get("association")
-        obs_type = ObserverType.PERSON
-        q = select(Observer).where(Observer.type == obs_type, Observer.name == name)
-        return self.session.scalars(q).one_or_none() or Observer(
-            type=ObserverType.PERSON,
+
+        q = select(Individual).where(Individual.name == name)
+        return self.session.scalars(q).one_or_none() or Individual(
             name=self.table.meta["keywords"]["author"],
-            affiliation=affiliation,
+            #affiliation=affiliation,
             valid_since=datetime.now(timezone.utc).replace(microsecond=0),
             valid_until=datetime(year=2999, month=12, day=31, tzinfo=timezone.utc),
             valid_state=ValidState.CURRENT,

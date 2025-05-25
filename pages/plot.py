@@ -32,17 +32,14 @@ from nixnox.web.streamlit import ttl
 
 conn = st.connection("env:NX_ENV", type="sql")
 
-
 @st.cache_data(ttl=ttl())
-def get_observation_details(_conn, obs_tag: str):
-    with _conn.session as session:
-        return db.obs_details(session, obs_tag)
+def get_observation_details(_session, obs_tag: str):
+    return db.obs_details(_session, obs_tag)
 
 
 @st.cache_data(ttl=ttl())
-def get_measurements(_conn, obs_tag: str):
-    with _conn.session as session:
-        return db.obs_measurements(session, obs_tag)
+def get_measurements(_session, obs_tag: str):
+    return db.obs_measurements(_session, obs_tag)
 
 
 @st.cache_data(ttl=ttl())
@@ -65,28 +62,30 @@ st.write("## Night Sky Brightness Plot")
 if "obs_tag" not in st.session_state:
     st.warning("### Please, select an observation in the home page", icon="⚠️")
 else:
+
     obs_tag = st.session_state.obs_tag
-    observation, observer, location, photometer = get_observation_details(conn, obs_tag)
-    measurements = get_measurements(conn, st.session_state.obs_tag)
-    measurements = Table([m.to_dict() for m in measurements])
-    with RLock():
-        figure = plot(
-            obs_tag,
-            measurements["azimuth"],
-            measurements["zenital"],
-            measurements["magnitude"],
-            observation.to_dict(),
-            observer.to_dict(),
-            location.to_dict(),
-            photometer.to_dict(),
-        )
-        output = BytesIO()
-        figure.savefig(output)
-        st.download_button(
-            label=f"Download Plot: *{obs_tag}*",
-            data=output.getvalue(),
-            file_name=f"{obs_tag}.png",
-            mime="image/png",
-            icon=":material/download:",
-        )
-        st.pyplot(figure)
+    with conn.session as session:
+        observation, observer, location, photometer = get_observation_details(session, obs_tag)
+        measurements = get_measurements(session, st.session_state.obs_tag)
+        measurements = Table([m.to_dict() for m in measurements])
+        with RLock():
+            figure = plot(
+                obs_tag,
+                measurements["azimuth"],
+                measurements["zenital"],
+                measurements["magnitude"],
+                observation.to_dict(),
+                observer.to_dict(),
+                location.to_dict(),
+                photometer.to_dict(),
+            )
+            output = BytesIO()
+            figure.savefig(output)
+            st.download_button(
+                label=f"Download Plot: *{obs_tag}*",
+                data=output.getvalue(),
+                file_name=f"{obs_tag}.png",
+                mime="image/png",
+                icon=":material/download:",
+            )
+            st.pyplot(figure)
