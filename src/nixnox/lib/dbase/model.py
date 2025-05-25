@@ -167,7 +167,7 @@ def observer_name(observer: dict) -> str:
 
 
 class Date(Model):
-    __tablename__ = "nx_date_t"
+    __tablename__ = "date_t"
 
     # Date as YYYYMMDD integer
     date_id: Mapped[int] = mapped_column(primary_key=True)
@@ -198,7 +198,7 @@ class Date(Model):
 
 
 class Time(Model):
-    __tablename__ = "nx_time_t"
+    __tablename__ = "time_t"
 
     # HHMMSS as integer
     time_id: Mapped[int] = mapped_column(primary_key=True)
@@ -213,30 +213,26 @@ class Time(Model):
 
 
 class Observer(Model):
-    __tablename__ = "nx_observer_t"
+    __tablename__ = "observer_t"
 
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
     type: Mapped[ObserverEnum] = mapped_column(ObserverEnum, nullable=False)
-    # Full name or organization name
+
+    # Individual full name
     name: Mapped[str] = mapped_column(String(255))
-    # Observer nickname for indivoiduals
-    nickname: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
-    # Observer (individual) affiliation (an organization name)
-    affiliation: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    # Organization acronym
-    acronym: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
-    # Individual/Organization website URL
-    website_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    # Individual/Organization contact email
-    email: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    # Version control attributes for Individuals that change affiliations
+
+    __mapper_args__ = {
+        "polymorphic_on": "type",
+    }
+
+    # These columns are here because of the unique constraint
     valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint(name, valid_since, valid_until),
+        UniqueConstraint(name, valid_since),
         {"extend_existing": True},  # extend_existing is for streamlit only :-(
     )
 
@@ -267,9 +263,47 @@ class Observer(Model):
         r["valid_state"] = self.valid_state.value
         return r
 
+class Individual(Observer):
+    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"), primary_key=True,  use_existing_column=True)
+   
+    # Individual full name
+    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
+    # Observer nickname for indivoiduals
+    nickname: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    # Observer (individual) affiliation (an organization name)
+    affiliation: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=False, use_existing_column=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=False, use_existing_column=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=False, use_existing_column=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": ObserverType.PERSON.value,
+    }
+    
+
+   
+
+class Organization(Observer):
+    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"), primary_key=True,  use_existing_column=True)
+    # Organization name
+    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
+    # Organization acronym
+    acronym: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    # Individual/Organization website URL
+    website_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Individual/Organization contact email
+    email: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # Version control attributes for Individuals that change affiliations
+
+    __mapper_args__ = {
+        "polymorphic_identity": ObserverType.ORG.value,
+    }
+    
+
 
 class Location(Model):
-    __tablename__ = "nx_location_t"
+    __tablename__ = "location_t"
 
     location_id: Mapped[int] = mapped_column(primary_key=True)
     # Geographical longitude in decimal degrees
@@ -329,7 +363,7 @@ class Location(Model):
 
 
 class Photometer(Model):
-    __tablename__ = "nx_photometer_t"
+    __tablename__ = "photometer_t"
 
     phot_id: Mapped[int] = mapped_column(primary_key=True)
     # Either TAS or SQM
@@ -372,7 +406,7 @@ class Photometer(Model):
 
 
 class Observation(Model):
-    __tablename__ = "nx_observation_t"
+    __tablename__ = "observation_t"
 
     obs_id: Mapped[int] = mapped_column(primary_key=True)
     # Identifier is the original filename, without path or extension
@@ -444,15 +478,15 @@ class Observation(Model):
 
 
 class Measurement(Model):
-    __tablename__ = "nx_measurement_t"
+    __tablename__ = "measurement_t"
 
     meas_id: Mapped[int] = mapped_column(primary_key=True)
-    date_id: Mapped[int] = mapped_column(ForeignKey("nx_date_t.date_id"))
-    time_id: Mapped[int] = mapped_column(ForeignKey("nx_time_t.time_id"))
-    observer_id: Mapped[int] = mapped_column(ForeignKey("nx_observer_t.observer_id"))
-    location_id: Mapped[int] = mapped_column(ForeignKey("nx_location_t.location_id"))
-    phot_id: Mapped[int] = mapped_column(ForeignKey("nx_photometer_t.phot_id"))
-    obs_id: Mapped[int] = mapped_column(ForeignKey("nx_observation_t.obs_id"), index=True)
+    date_id: Mapped[int] = mapped_column(ForeignKey("date_t.date_id"))
+    time_id: Mapped[int] = mapped_column(ForeignKey("time_t.time_id"))
+    observer_id: Mapped[int] = mapped_column(ForeignKey("observer_t.observer_id"))
+    location_id: Mapped[int] = mapped_column(ForeignKey("location_t.location_id"))
+    phot_id: Mapped[int] = mapped_column(ForeignKey("photometer_t.phot_id"))
+    obs_id: Mapped[int] = mapped_column(ForeignKey("observation_t.obs_id"), index=True)
     # Sequence number within the batch, TAS only
     sequence: Mapped[Optional[int]]
     # Azimuth in decimal degrees

@@ -77,6 +77,15 @@ env-bak drive=def_drive: (check_mnt drive) (env-backup join(drive, "env", projec
 # Restore .env from storage unit
 env-rst drive=def_drive: (check_mnt drive) (env-restore join(drive, "env", project))
 
+# Starts a new SQLite database export migration cycle   
+schema env="devel" verbose="":
+    #!/usr/bin/env bash
+    set -exuo pipefail
+    env={{env}}
+    uv sync --reinstall
+    curl -X DELETE http://localhost:8082/v1/namespaces/${env}
+    curl -X POST http://localhost:8082/v1/namespaces/${env}/create -d '{}' -H "Content-Type: application/json" 
+    uv run nx-db-schema --console --log-file nixnox.log {{ verbose }}
 
 # Starts a new SQLite database export migration cycle   
 anew verbose="":
