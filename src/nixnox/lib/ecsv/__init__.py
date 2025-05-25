@@ -55,10 +55,13 @@ def uploader(session: Session, file_obj: BinaryIO, log=log, **kwargs) -> Optiona
         observation = subloader.observation(digest)  # may reaise an exception if already existing
         photometer = subloader.photometer()
         location = subloader.location()
+        affiliation = subloader.affiliation()
         observer = subloader.observer()
+        observer.affiliation = affiliation
         for item in (
             photometer,
             location,
+            affiliation,
             observer,
             observation,
         ):

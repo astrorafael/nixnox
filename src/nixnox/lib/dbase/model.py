@@ -150,7 +150,6 @@ PopulationCentreType: Enum = Enum(
 # Auxiliar functions
 # ------------------
 
-
 def observer_name(observer: dict) -> str:
     """Handy formatting tool to get a good observer name"""
     name = observer["name"]
@@ -231,7 +230,6 @@ class Observer(Model):
 
     __mapper_args__ = {
         "polymorphic_on": "type",
-        #"polymorphic_identity": ObserverType.GENERIC,
     }
 
     def __repr__(self) -> str:
@@ -244,49 +242,11 @@ class Observer(Model):
             for key in (
                 "type",
                 "name",
-                "nickname",
-                "affiliation",
-                "acronym",
-                "website_url",
-                "email",
-                "valid_since",
-                "valid_until",
-                "valid_state",
             )
         )
         # Patch enum & date values
         r["type"] = self.type.value
-        r["valid_since"] = self.valid_since.isoformat()
-        r["valid_until"] = self.valid_until.isoformat()
-        r["valid_state"] = self.valid_state.value
         return r
-
-
-class Individual(Observer):
-    observer_id: Mapped[int] = mapped_column(
-        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
-    )
-
-    # Individual full name
-    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
-    # Observer nickname for individuals, optional as it shares data with Organozation
-    nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)
-    # Observer (individual) affiliation to an organization name
-    affiliation: Mapped[int] = mapped_column(
-        ForeignKey("observer_t.observer_id"), nullable=True, use_existing_column=True
-    )
-
-    # They are optional because they share table with Organization
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
-    valid_state: Mapped[ValidStateType] = mapped_column(
-        ValidStateType, nullable=True, use_existing_column=True
-    )
-
-    __mapper_args__ = {
-        "polymorphic_identity": ObserverType.PERSON,
-    }
-
 
 class Organization(Observer):
     observer_id: Mapped[int] = mapped_column(
@@ -306,6 +266,66 @@ class Organization(Observer):
         "polymorphic_identity": ObserverType.ORG,
     }
 
+    def to_dict(self) -> OrderedDict:
+        """To be written as Astropy's table metadata"""
+        r = super().to_dict()
+        r["acronym"] = self.acronym
+        r["website_url"] = self.website_url
+        r["email"] = self.email
+        return r
+
+
+
+class Individual(Observer):
+    observer_id: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
+    )
+
+    # Individual full name
+    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
+    # Observer nickname for individuals, optional as it shares data with Organozation
+    nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)
+    # Observer (individual) affiliation to an organization name
+    affiliation_id: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), nullable=True, use_existing_column=True
+    )
+
+    # They are optional because they share table with Organization
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(
+        ValidStateType, nullable=True, use_existing_column=True
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": ObserverType.PERSON,
+    }
+    
+    # Apparntly this is not resolved ith the ORM declaration
+    affiliation = relationship(
+        "Organization",
+        foreign_keys=affiliation_id,
+        remote_side=observer_id,
+    )
+    #affiliation: Mapped[Optional["Organization"]] = relationship()
+
+    def to_dict(self) -> OrderedDict:
+        r = super().to_dict()
+        r["valid_since"] = self.valid_since.isoformat()
+        r["valid_until"] = self.valid_until.isoformat()
+        r["valid_state"] = self.valid_state.value
+        if self.affiliation:
+            a = self.affiliation.to_dict()
+            r["affiliation"] = a["name"]
+            r["acronym"] = a["acronym"]
+            r["email"] = a["email"]
+            r["website_url"] = a["website_url"]
+        else:
+            r["affiliation"] = None
+            r["acronym"] = None
+            r["email"] = None
+            r["website_url"] = None
+        return r
 
 class Location(Model):
     __tablename__ = "location_t"
