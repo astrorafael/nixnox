@@ -176,8 +176,8 @@ def persons_lookup(session):
     q = select(
         Individual.name,
         Individual.nickname,
-        Individual.valid_state,
         label("affiliated", Individual.affiliation_id is not None),
+        Individual.valid_state,  
         Individual.valid_since,
         Individual.valid_until,
     ).order_by(asc(Individual.name))
