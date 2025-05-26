@@ -42,6 +42,8 @@ dependencies = [
   "scipy>=1.15",
   "streamlit>=1.45",
   "sqlalchemy-libsql",
+  "pydantic>=2.11",
+  "email-validator",
 ]
 
 [project.urls]
