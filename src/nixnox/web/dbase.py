@@ -173,8 +173,8 @@ def obs_export(session, obs_tag: str) -> str:
 
 def persons_lookup(session):
     """Generic Obsewrvation summary search with several constratints"""
-    q = select(Individual).order_by(asc(Individual.name))
-    return session.scalars(q).all()
+    q = select(Individual.name, Individual.nickname, Individual.valid_state, Individual.valid_since, Individual.valid_until).order_by(asc(Individual.name))
+    return session.execute(q).all()
 
 def orgs_lookup(session):
     """Generic Obsewrvation summary search with several constratints"""
