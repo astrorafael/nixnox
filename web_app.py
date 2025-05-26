@@ -36,6 +36,11 @@ pg = st.navigation(
             title="Upload observation file",
             icon=":material/upload_file:",
         ),
+        st.Page(
+            os.path.join("pages", "observer.py"),
+            title="Edit observer",
+            icon=":material/edit:",
+        ),
     ]
 )
 pg.run()
