@@ -130,24 +130,28 @@ def on_selected_org() -> None:
 
 def view_person_list() -> None:
     with st.expander("👤 Existing Persons"):
-        st.dataframe(
-            st.session_state.persons_table,
-            key="PersonDF",
-            hide_index=True,
-            on_select=on_selected_person,
-            selection_mode="single-row",
-        )
+        with conn.session as session:
+            st.session_state.persons_table = db.persons_lookup(session)
+            st.dataframe(
+                st.session_state.persons_table,
+                key="PersonDF",
+                hide_index=True,
+                on_select=on_selected_person,
+                selection_mode="single-row",
+            )
 
 
 def view_org_list() -> None:
     with st.expander("🏢 Existing Organnizations"):
-        st.dataframe(
-            st.session_state.orgs_table,
-            key="OrganizationDF",
-            hide_index=True,
-            on_select=on_selected_org,
-            selection_mode="single-row",
-        )
+        with conn.session as session:
+            st.session_state.orgs_table = db.orgs_lookup(session)
+            st.dataframe(
+                st.session_state.orgs_table,
+                key="OrganizationDF",
+                hide_index=True,
+                on_select=on_selected_org,
+                selection_mode="single-row",
+            )
 
 
 def view_person() -> None:

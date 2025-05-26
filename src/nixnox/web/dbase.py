@@ -14,7 +14,7 @@ from io import StringIO
 # Third party libraries
 # =====================
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, asc
 from streamlit.logger import get_logger
 
 # -------------
@@ -26,6 +26,8 @@ from ..lib import PhotometerModel
 from ..lib.dbase.model import (
     Photometer,
     Observer,
+    Individual,
+    Organization,
     Observation,
     Location,
     Measurement,
@@ -167,3 +169,14 @@ def obs_export(session, obs_tag: str) -> str:
     output_file = StringIO()
     table.write(output_file, delimiter=",", format="ascii.ecsv", overwrite=True)
     return output_file.getvalue()
+
+
+def persons_lookup(session):
+    """Generic Obsewrvation summary search with several constratints"""
+    q = select(Individual).order_by(asc(Individual.name))
+    return session.scalars(q).all()
+
+def orgs_lookup(session):
+    """Generic Obsewrvation summary search with several constratints"""
+    q = select(Organization.name, Organization.acronym, Organization.website_url, Organization.email).order_by(asc(Organization.name))
+    return session.execute(q).all()
