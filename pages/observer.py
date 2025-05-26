@@ -95,6 +95,8 @@ st.session_state.person_form_data = person_form_data
 st.session_state.org_form_data = org_form_data
 st.session_state.persons_table = None
 st.session_state.orgs_table = None
+st.session_state.selected_person_name = None
+st.session_state.selected_org_name = None
 
 # ---------------------
 # Convenience functions
@@ -120,10 +122,26 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
 
 
 def on_selected_person() -> None:
-    pass
-
+    if st.session_state.PersonDF.selection.rows:
+        log.debug(
+            "st.session_state.PersonDF.selection.rows = %s",
+            st.session_state.PersonDF.selection.rows,
+        )
+        row = st.session_state.PersonDF.selection.rows[0]
+        log.debug("st.session_state.result_table[row] = %s", st.session_state.persons_table[row])
+        # name is the first item in the row
+        st.session_state.selected_person_name = st.session_state.persons_table[row][0]
+    
 def on_selected_org() -> None:
-    pass
+    if st.session_state.OrganizationDF.selection.rows:
+        log.debug(
+            "st.session_state.OrganizationDF.selection.rows = %s",
+            st.session_state.OrganizationDF.selection.rows,
+        )
+        row = st.session_state.OrganizationDF.selection.rows[0]
+        log.debug("st.session_state.result_table[row] = %s", st.session_state.orgs_table[row])
+        # name is the first item in the row
+        st.session_state.selected_org_name = st.session_state.orgs_table[row][0]
 
 # ----------------------
 
@@ -175,9 +193,6 @@ def view_person() -> None:
         )
 
 
-TELESCOPE = "🔭"
-
-
 def view_organization() -> None:
     with st.form("organization_data_entry_form", clear_on_submit=False):
         st.header("🏢 Organization Data Entry")
@@ -221,5 +236,5 @@ def view_all() -> None:
         view_organization()
 
 
-st.title("✨ Observer Data Entry")  # Initialize session state
+st.title("✨ 🔭 Observer Data Entry")  # Initialize session state
 view_all()

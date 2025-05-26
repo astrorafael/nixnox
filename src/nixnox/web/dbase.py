@@ -14,7 +14,7 @@ from io import StringIO
 # Third party libraries
 # =====================
 
-from sqlalchemy import select, func, desc, asc
+from sqlalchemy import select, func, desc, asc, label
 from streamlit.logger import get_logger
 
 # -------------
@@ -173,10 +173,20 @@ def obs_export(session, obs_tag: str) -> str:
 
 def persons_lookup(session):
     """Generic Obsewrvation summary search with several constratints"""
-    q = select(Individual.name, Individual.nickname, Individual.valid_state, Individual.valid_since, Individual.valid_until).order_by(asc(Individual.name))
+    q = select(
+        Individual.name,
+        Individual.nickname,
+        Individual.valid_state,
+        label("affiliated", Individual.affiliation_id is not None),
+        Individual.valid_since,
+        Individual.valid_until,
+    ).order_by(asc(Individual.name))
     return session.execute(q).all()
+
 
 def orgs_lookup(session):
     """Generic Obsewrvation summary search with several constratints"""
-    q = select(Organization.name, Organization.acronym, Organization.website_url, Organization.email).order_by(asc(Organization.name))
+    q = select(
+        Organization.name, Organization.acronym, Organization.website_url, Organization.email
+    ).order_by(asc(Organization.name))
     return session.execute(q).all()
