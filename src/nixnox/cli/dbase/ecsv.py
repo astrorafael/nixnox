@@ -19,7 +19,7 @@ from argparse import ArgumentParser, Namespace
 # -------------------
 
 from lica.sqlalchemy import sqa_logging
-from lica.sqlalchemy.dbase import Session
+from lica.sqlalchemy.dbase import Session, engine
 from lica.cli import execute
 
 # --------------
@@ -139,6 +139,7 @@ def cli_main(args: Namespace) -> None:
     sqa_logging(args)
     with Session() as session:
         args.func(session, args)
+    engine.dispose()
 
 
 def dbimport():

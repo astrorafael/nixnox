@@ -234,6 +234,9 @@ def cli_main(args: Namespace) -> None:
     sqa_logging(args)
     with Session() as session:
         args.func(session, args)
+    # Useful to avoid LibSQL  HTTP upgrade connection #N failed: Could not receive a WebSocket message
+    # at the end of the program
+    engine.dispose()
 
 
 def main():
