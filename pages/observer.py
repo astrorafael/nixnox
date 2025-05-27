@@ -50,22 +50,6 @@ class EmailField(BaseModel):
     email: Optional[EmailStr]
 
 
-class PersonForm(BaseModel):
-    name: str
-    nickname: Optional[str]
-    affiliation: Optional[str]
-    valid_since: Optional[datetime]
-    valid_until: Optional[datetime]
-    valid_state: Optional[ValidState]
-
-
-class OrganizationForm(BaseModel):
-    name: str
-    acronym: Optional[str]
-    website_url: Optional[HttpUrl]
-    email: Optional[EmailStr]
-
-
 # ----------------
 # Global variables
 # ----------------
@@ -80,6 +64,7 @@ person_form_data = {
     "valid_since": date.today(),
     "valid_until": None,
     "valid_state": ValidState.CURRENT,
+    "affiliated": False,
     "submitted": False,
 }
 
@@ -91,12 +76,22 @@ org_form_data = {
     "submitted": False,
 }
 
-st.session_state.person_form_data = person_form_data
-st.session_state.org_form_data = org_form_data
-st.session_state.persons_table = None
-st.session_state.orgs_table = None
-st.session_state.selected_person_name = None
-st.session_state.selected_org_name = None
+
+def init_state_person() -> None:
+    # Table above
+    st.session_state.persons_table = None
+    st.session_state.selected_person_name = None
+    # Form below
+    st.session_state.person_form_data = person_form_data
+
+
+def init_state_org() -> None:
+    # Table above
+    st.session_state.orgs_table = None
+    st.session_state.selected_org_name = None
+    # Form below
+    st.session_state.org_form_data = org_form_data
+
 
 # ---------------------
 # Convenience functions
@@ -123,25 +118,44 @@ def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
 
 def on_selected_person() -> None:
     if st.session_state.PersonDF.selection.rows:
-        log.debug(
-            "st.session_state.PersonDF.selection.rows = %s",
-            st.session_state.PersonDF.selection.rows,
-        )
+        # Clicked one row
         row = st.session_state.PersonDF.selection.rows[0]
-        log.debug("st.session_state.result_table[row] = %s", st.session_state.persons_table[row])
         # name is the first item in the row
-        st.session_state.selected_person_name = st.session_state.persons_table[row][0]
-    
+        info = st.session_state.persons_table[row]
+        st.session_state.selected_person_name = info[0]
+        new_form_data = {
+            "name": info[0],
+            "nickname": info[1],
+            "affiliated": info[2],
+            "valid_state": info[3],
+            "valid_since": info[4],
+            "valid_until": info[5],
+        }
+        st.session_state.person_form_data.update(new_form_data)
+
+    else:
+        # No rows clicked by unclicking
+        del st.session_state["selected_person_name"]
+        del st.session_state["person_form_data"]
+
+
 def on_selected_org() -> None:
     if st.session_state.OrganizationDF.selection.rows:
-        log.debug(
-            "st.session_state.OrganizationDF.selection.rows = %s",
-            st.session_state.OrganizationDF.selection.rows,
-        )
         row = st.session_state.OrganizationDF.selection.rows[0]
-        log.debug("st.session_state.result_table[row] = %s", st.session_state.orgs_table[row])
         # name is the first item in the row
-        st.session_state.selected_org_name = st.session_state.orgs_table[row][0]
+        info = st.session_state.orgs_table[row]
+        st.session_state.selected_org_name = info[0]
+        new_form_data = {
+            "name": info[0],
+            "acronym": info[1],
+            "website_url": info[2],
+            "email": info[3],
+        }
+        st.session_state.org_form_data.update(new_form_data)
+    else:
+        del st.session_state["selected_org_name"]
+        del st.session_state["org_form_data"]
+
 
 # ----------------------
 
@@ -172,19 +186,45 @@ def view_org_list() -> None:
             )
 
 
-def view_person() -> None:
-    with st.form("person_data_entry_form", clear_on_submit=False):
+def view_affiliation(form_data) -> None:
+    form_data = st.session_state.person_form_data
+    c1, c2 = st.columns(2)
+    with c1:
+        ancient = date(2000, 1, 1)
+        forever = date(2999, 12, 31)
+        st.date_input(
+            "Since",
+            value=form_data["valid_since"],
+            min_value=ancient,
+            max_value="today",
+        )
+        st.date_input(
+            "Until",
+            value=form_data["valid_since"],
+            min_value="today",
+            max_value=forever,
+        )
+    with c2:
+        option = st.selectbox("Organization", options=(), index=None)
+
+
+
+def view_person(form_data: dict[str]) -> None:
+    with st.form("person_data_entry_form", clear_on_submit=True):
         st.header("👤 Person Data Entry")
-        name = st.text_input("Full Name", value=st.session_state.person_form_data["name"])
+        name = st.text_input("Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
         except ValidationError as e:
             st.error(str(e))
-        nickname = st.text_input("Nickname", value=st.session_state.person_form_data["nickname"])
+        nickname = st.text_input("Nickname", value=form_data["nickname"])
         try:
             nickname = NickField(nickname=nickname)
         except ValidationError as e:
             st.error(str(e))
+        affiliated = st.checkbox("Affiliated to Organization", value=form_data["affiliated"])
+        if affiliated:
+            view_affiliation(form_data)
         st.form_submit_button(
             "**Submit**",
             help="Sumbit Observer data to database",
@@ -193,27 +233,25 @@ def view_person() -> None:
         )
 
 
-def view_organization() -> None:
-    with st.form("organization_data_entry_form", clear_on_submit=False):
+def view_organization(form_data: dict[str]) -> None:
+    with st.form("organization_data_entry_form", clear_on_submit=True):
         st.header("🏢 Organization Data Entry")
-        name = st.text_input("Organization Full Name", value=st.session_state.org_form_data["name"])
+        name = st.text_input("Organization Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
         except ValidationError as e:
             st.error(str(e))
-        acronym = st.text_input("Acronym", value=st.session_state.org_form_data["acronym"])
+        acronym = st.text_input("Acronym", value=form_data["acronym"])
         try:
             acronym = AcronymField(acronym=acronym)
         except ValidationError as e:
             st.error(str(e))
-        website_url = st.text_input(
-            "🌎 Web Site", value=st.session_state.org_form_data["website_url"]
-        )
+        website_url = st.text_input("🌎 Web Site", value=form_data["website_url"])
         try:
             website_url = WebField(website_url=website_url)
         except ValidationError as e:
             st.error(str(e))
-        email = st.text_input("📧 Email", value=st.session_state.org_form_data["email"])
+        email = st.text_input("📧 Email", value=form_data["email"])
         try:
             email = EmailField(email=email)
         except ValidationError as e:
@@ -227,14 +265,18 @@ def view_organization() -> None:
 
 
 def view_all() -> None:
+    st.title("✨ 🔭 Observer Data Entry")  # Initialize session state
     c1, c2 = st.columns(2)
     with c1:
         view_person_list()
-        view_person()
+        view_person(st.session_state["person_form_data"])
     with c2:
         view_org_list()
-        view_organization()
+        view_organization(st.session_state["org_form_data"])
 
 
-st.title("✨ 🔭 Observer Data Entry")  # Initialize session state
+if "person_form_data" not in st.session_state:
+    init_state_person()
+if "org_form_data" not in st.session_state:
+    init_state_org()
 view_all()
