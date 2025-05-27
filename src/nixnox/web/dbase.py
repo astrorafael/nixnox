@@ -9,6 +9,7 @@
 # -------------------
 
 from io import StringIO
+from typing import Optional
 
 # =====================
 # Third party libraries
@@ -184,8 +185,19 @@ def persons_lookup(session):
     return session.execute(q).all()
 
 
+def person_affiliation(session, name: str) -> Optional[str]:
+    q = select(Individual).where(Individual.name == name)
+    person = session.scalars(q).one_or_none()
+    if not person or not person.affiliation:
+        return None
+    return person.affiliation.name
+
+def orgs_names_lookup(session):
+    q = select(Organization.name).order_by(asc(Organization.name))
+    return session.scalars(q).all()
+
+
 def orgs_lookup(session):
-    """Generic Obsewrvation summary search with several constratints"""
     q = select(
         Organization.name, Organization.acronym, Organization.website_url, Organization.email
     ).order_by(asc(Organization.name))

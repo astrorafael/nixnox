@@ -1,7 +1,7 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Iterable, Callable
 from datetime import datetime, date
 
 import streamlit as st
@@ -11,7 +11,7 @@ from pydantic import BaseModel, ValidationError, validator, EmailStr, HttpUrl
 
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
-from nixnox.lib import ObserverType, ValidState
+from nixnox.lib import ValidState
 
 # ---------------
 # Pydantic Models
@@ -77,6 +77,16 @@ org_form_data = {
 }
 
 
+@st.cache_data(ttl=ttl())
+def affiliations(_conn) -> Iterable[str]:
+    with _conn.session as session:
+        return db.orgs_names_lookup(session)
+
+@st.cache_data(ttl=ttl())
+def person_affiliation(_conn, name) -> Optional[str]:
+    with _conn.session as session:
+        return db.person_affiliation(session, name)
+
 def init_state_person() -> None:
     # Table above
     st.session_state.persons_table = None
@@ -97,30 +107,12 @@ def init_state_org() -> None:
 # Convenience functions
 # ---------------------
 
-
-@st.cache_data(ttl=ttl())
-def obs_summary(_conn, conditions):
-    with _conn.session as session:
-        return db.obs_summary_search(session, conditions)
-
-
-@st.cache_data(ttl=ttl())
-def obs_nsummaries(_conn):
-    with _conn.session as session:
-        return db.obs_nsummaries(session)
-
-
-@st.cache_data(ttl=ttl())
-def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
-    with _conn.session as session:
-        return db.obs_export(session, obs_tag)
-
-
 def on_selected_person() -> None:
+    """Person dataframe callback function"""
     if st.session_state.PersonDF.selection.rows:
         # Clicked one row
         row = st.session_state.PersonDF.selection.rows[0]
-        # name is the first item in the row
+        # Get the whole row
         info = st.session_state["persons_table"][row]
         st.session_state["selected_person"] = info
         new_form_data = {
@@ -132,7 +124,6 @@ def on_selected_person() -> None:
             "valid_until": info[5],
         }
         st.session_state["person_form_data"].update(new_form_data)
-
     else:
         # No rows clicked by unclicking
         del st.session_state["selected_person"]
@@ -140,9 +131,10 @@ def on_selected_person() -> None:
 
 
 def on_selected_org() -> None:
+    """organization dataframe callback function"""
     if st.session_state.OrganizationDF.selection.rows:
         row = st.session_state.OrganizationDF.selection.rows[0]
-        # name is the first item in the row
+        # Get the whole row
         info = st.session_state["orgs_table"][row]
         st.session_state["selected_org"] = info
         new_form_data = {
@@ -174,7 +166,7 @@ def view_person_list(table: Any) -> None:
 
 
 def view_org_list(table: Any) -> None:
-    with st.expander("🏢 Existing Organnizations"):
+    with st.expander("🏢 Existing Organizations"):
         with conn.session as session:
             st.session_state.orgs_table = db.orgs_lookup(session)
             st.dataframe(
@@ -187,7 +179,12 @@ def view_org_list(table: Any) -> None:
 
 
 def view_affiliation(form_data) -> None:
-    form_data = st.session_state.person_form_data
+    available_aff = affiliations(conn)
+    aff = person_affiliation(conn, form_data["name"])
+    try:
+        index = available_aff.index(aff)
+    except ValueError:
+        index=None
     c1, c2 = st.columns(2)
     with c1:
         ancient = date(2000, 1, 1)
@@ -205,7 +202,7 @@ def view_affiliation(form_data) -> None:
             max_value=forever,
         )
     with c2:
-        option = st.selectbox("Organization", options=(), index=None)
+        option = st.selectbox("Organization", options=available_aff, index=index)
 
 
 def view_person(form_data: dict[str]) -> None:
@@ -221,9 +218,9 @@ def view_person(form_data: dict[str]) -> None:
             nickname = NickField(nickname=nickname)
         except ValidationError as e:
             st.error(str(e))
-        affiliated = st.checkbox("Affiliated to Organization", value=form_data["affiliated"])
-        if affiliated:
-            view_affiliation(form_data)
+        st.divider()
+        st.subheader("Affiliation")
+        view_affiliation(form_data)
         st.form_submit_button(
             "**Submit**",
             help="Sumbit Observer data to database",

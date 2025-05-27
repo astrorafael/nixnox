@@ -202,8 +202,8 @@ def cli_populate_observer(session: Session, args: Namespace) -> None:
 
 
 def cli_populate_all(session: Session, args: Namespace) -> None:
-    cli_populate_observer(session, args)
-    cli_populate_location(session, args)
+    #cli_populate_observer(session, args)
+    #cli_populate_location(session, args)
     cli_populate_date(session, args)
     cli_populate_time(session, args)
 
