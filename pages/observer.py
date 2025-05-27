@@ -32,31 +32,31 @@ class NameField(BaseModel):
 
 
 class NickField(BaseModel):
-    nickname: Optional[str]
+    nickname: Optional[str] = None
 
 
 class AffilField(BaseModel):
-    affiliation: Optional[str]
+    affiliation: Optional[str] = None
 
 
 class ValidDateField(BaseModel):
-    valid_date: Optional[datetime]
+    valid_date: Optional[datetime] = None
 
 
 class ValidStateField(BaseModel):
-    valid_state: Optional[ValidState]
+    valid_state: Optional[ValidState] = None
 
 
 class AcronymField(BaseModel):
-    acronym: Optional[str]
+    acronym: Optional[str] = None
 
 
 class WebField(BaseModel):
-    website_url: Optional[HttpUrl]
+    website_url: Optional[HttpUrl] = None
 
 
 class EmailField(BaseModel):
-    email: Optional[EmailStr]
+    email: Optional[EmailStr] = None
 
 
 # ----------------
@@ -105,28 +105,36 @@ def person_affiliation(_conn, name) -> Optional[str]:
 
 
 def init_state_person() -> None:
-    # Table above
-    with conn.session as session:
-        st.session_state["persons_table"] = db.persons_lookup(session)
-    st.session_state.selected_person = None
-    # Form below
-    st.session_state.person_form_data = person_form_data
+    if "person_form_data" not in st.session_state:
+        # Table above
+        with conn.session as session:
+            st.session_state["persons_table"] = db.persons_lookup(session)
+        st.session_state.selected_person = None
+        # Form below
+        st.session_state.person_form_data = person_form_data
+    elif st.session_state["person_form_data"]["submitted"]:
+        with conn.session as session:
+            st.session_state["persons_table"] = db.persons_lookup(session)
 
 
 def init_state_org() -> None:
-    # Table above
-    with conn.session as session:
-        st.session_state["orgs_table"] = db.orgs_lookup(session)
-    st.session_state.selected_org = None
-    # Form below
-    st.session_state.org_form_data = org_form_data
+    if "org_form_data" not in st.session_state:
+        # Table above
+        with conn.session as session:
+            st.session_state["orgs_table"] = db.orgs_lookup(session)
+        st.session_state["selected_org"] = None
+        # Form below
+        st.session_state.org_form_data = org_form_data
+    elif st.session_state["org_form_data"]["submitted"]:
+        st.write("CUCUU")
+        with conn.session as session:
+            st.session_state["orgs_table"] = db.orgs_lookup(session)
+            st.session_state["selected_org"] = None
 
 
 def update_organization(name, acronym, website_url, email):
     with conn.session as session:
         db.org_update(session, name.name, acronym.acronym, str(website_url.website_url), email.email)
-        st.session_state["orgs_table"] = db.orgs_lookup(session)
-
 
 
 def on_selected_person() -> None:
@@ -185,7 +193,7 @@ def view_person_list(table: Any) -> None:
         )
 
 
-def view_org_list(table: Any) -> None:
+def view_org_list(table: Any) -> None: 
     with st.expander("🏢 Existing Organizations"):
         st.dataframe(
             table,
@@ -231,7 +239,7 @@ def view_person(form_data: dict[str]) -> None:
         try:
             name = NameField(name=name)
         except ValidationError as e:
-            st.error("name is not valid")
+            st.warning("⚠️ please, change name")
             name = None
         nickname = st.text_input("Nickname", value=form_data["nickname"])
         try:
@@ -239,7 +247,6 @@ def view_person(form_data: dict[str]) -> None:
         except ValidationError as e:
             st.error("acronym is not valid")
             nickname = None
-        st.divider()
         st.subheader("Affiliation")
         since, until, option = view_affiliation(form_data)
         submitted = st.form_submit_button(
@@ -248,6 +255,8 @@ def view_person(form_data: dict[str]) -> None:
             type="primary",
             use_container_width=False,
         )
+        if submitted:
+            st.success("Updated!")
 
 
 def view_organization(form_data: dict[str]) -> None:
@@ -257,7 +266,7 @@ def view_organization(form_data: dict[str]) -> None:
         try:
             name = NameField(name=name)
         except ValidationError:
-            st.error("name is not valid")
+            st.warning("⚠️ please, change name")
             name = None
         acronym = st.text_input("Acronym", value=form_data["acronym"])
         try:
@@ -283,6 +292,7 @@ def view_organization(form_data: dict[str]) -> None:
             type="primary",
             use_container_width=False,
         )
+        form_data["submitted"] = submitted
         if submitted and all(map(lambda x: x is not None, [name, acronym, website_url, email])):
             update_organization(name, acronym, website_url, email)
             st.success("Updated!")
@@ -299,8 +309,7 @@ def view_all() -> None:
         view_organization(st.session_state["org_form_data"])
 
 
-if "person_form_data" not in st.session_state:
-    init_state_person()
-if "org_form_data" not in st.session_state:
-    init_state_org()
+
+init_state_person()
+init_state_org()
 view_all()
