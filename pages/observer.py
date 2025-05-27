@@ -1,13 +1,13 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Optional, Any, Iterable, Tuple, Callable
+from typing import Optional, Any, Iterable, Tuple
 from datetime import datetime, date
 
 import streamlit as st
 from streamlit.logger import get_logger
 
-from pydantic import BaseModel, ValidationError, validator, EmailStr, HttpUrl
+from pydantic import BaseModel, field_validator, ValidationError, EmailStr, HttpUrl
 
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
@@ -18,8 +18,17 @@ from nixnox.lib import ValidState
 # ---------------
 
 
+DEF_ORG_TEXT = "<Enter organization name here>"
+DEF_PERSON_TEXT = "<Enter your full name here>"
+
 class NameField(BaseModel):
     name: str
+
+    @field_validator('name')
+    def not_sample_text(cls, v):
+        if v.strip() in (DEF_ORG_TEXT, DEF_PERSON_TEXT):
+            raise ValueError(f"Sample text is not valid: {v.strip()}")
+        return v
 
 
 class NickField(BaseModel):
@@ -57,8 +66,9 @@ class EmailField(BaseModel):
 log = get_logger(__name__)
 conn = st.connection("env:NX_ENV", type="sql")
 
+
 person_form_data = {
-    "name": "Enter your full name here",
+    "name": DEF_PERSON_TEXT,
     "nickname": None,
     "affiliation": None,
     "valid_since": date.today(),
@@ -69,7 +79,7 @@ person_form_data = {
 }
 
 org_form_data = {
-    "name": "Enter organization name here",
+    "name": DEF_ORG_TEXT,
     "acronym": None,
     "website_url": None,
     "email": None,
@@ -77,15 +87,22 @@ org_form_data = {
 }
 
 
+# ---------------------
+# Convenience functions
+# ---------------------
+
+
 @st.cache_data(ttl=ttl())
 def affiliations(_conn) -> Iterable[str]:
     with _conn.session as session:
         return db.orgs_names_lookup(session)
 
+
 @st.cache_data(ttl=ttl())
 def person_affiliation(_conn, name) -> Optional[str]:
     with _conn.session as session:
         return db.person_affiliation(session, name)
+
 
 def init_state_person() -> None:
     # Table above
@@ -105,9 +122,12 @@ def init_state_org() -> None:
     st.session_state.org_form_data = org_form_data
 
 
-# ---------------------
-# Convenience functions
-# ---------------------
+def update_organization(name, acronym, website_url, email):
+    with conn.session as session:
+        db.org_update(session, name.name, acronym.acronym, str(website_url.website_url), email.email)
+        st.session_state["orgs_table"] = db.orgs_lookup(session)
+
+
 
 def on_selected_person() -> None:
     """Person dataframe callback function"""
@@ -156,24 +176,24 @@ def on_selected_org() -> None:
 
 def view_person_list(table: Any) -> None:
     with st.expander("👤 Existing Persons"):
-            st.dataframe(
-                table,
-                key="PersonDF",
-                hide_index=True,
-                selection_mode="single-row",
-                on_select=on_selected_person,
-            )
+        st.dataframe(
+            table,
+            key="PersonDF",
+            hide_index=True,
+            selection_mode="single-row",
+            on_select=on_selected_person,
+        )
 
 
 def view_org_list(table: Any) -> None:
     with st.expander("🏢 Existing Organizations"):
-            st.dataframe(
-                table,
-                key="OrganizationDF",
-                hide_index=True,
-                selection_mode="single-row",
-                on_select=on_selected_org,
-            )
+        st.dataframe(
+            table,
+            key="OrganizationDF",
+            hide_index=True,
+            selection_mode="single-row",
+            on_select=on_selected_org,
+        )
 
 
 def view_affiliation(form_data) -> Tuple[date, date, str]:
@@ -182,7 +202,7 @@ def view_affiliation(form_data) -> Tuple[date, date, str]:
     try:
         index = available_aff.index(aff)
     except ValueError:
-        index=None
+        index = None
     c1, c2 = st.columns(2)
     with c1:
         ancient = date(2000, 1, 1)
@@ -211,18 +231,20 @@ def view_person(form_data: dict[str]) -> None:
         try:
             name = NameField(name=name)
         except ValidationError as e:
-            st.error(str(e))
+            st.error("name is not valid")
+            name = None
         nickname = st.text_input("Nickname", value=form_data["nickname"])
         try:
             nickname = NickField(nickname=nickname)
         except ValidationError as e:
-            st.error(str(e))
+            st.error("acronym is not valid")
+            nickname = None
         st.divider()
         st.subheader("Affiliation")
         since, until, option = view_affiliation(form_data)
         submitted = st.form_submit_button(
             "**Submit**",
-            help="Sumbit Observer data to database",
+            help="Submit Observer data to database",
             type="primary",
             use_container_width=False,
         )
@@ -234,29 +256,36 @@ def view_organization(form_data: dict[str]) -> None:
         name = st.text_input("Organization Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
-        except ValidationError as e:
-            st.error(str(e))
+        except ValidationError:
+            st.error("name is not valid")
+            name = None
         acronym = st.text_input("Acronym", value=form_data["acronym"])
         try:
             acronym = AcronymField(acronym=acronym)
-        except ValidationError as e:
-            st.error(str(e))
+        except ValidationError:
+            st.error("acronym is not valid")
+            acronym = None
         website_url = st.text_input("🌎 Web Site", value=form_data["website_url"])
         try:
             website_url = WebField(website_url=website_url)
-        except ValidationError as e:
-            st.error(str(e))
+        except ValidationError:
+            st.error("URL format is not valid")
+            website_url = None
         email = st.text_input("📧 Email", value=form_data["email"])
         try:
             email = EmailField(email=email)
-        except ValidationError as e:
-            st.error(str(e))
+        except ValidationError:
+            st.error("email format is not valid")
+            email = None
         submitted = st.form_submit_button(
             "**Submit**",
-            help="Sumbit Organization database",
+            help="Submit Organization data to database",
             type="primary",
             use_container_width=False,
         )
+        if submitted and all(map(lambda x: x is not None, [name, acronym, website_url, email])):
+            update_organization(name, acronym, website_url, email)
+            st.success("Updated!")
 
 
 def view_all() -> None:

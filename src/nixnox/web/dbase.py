@@ -178,7 +178,7 @@ def persons_lookup(session):
         Individual.name,
         Individual.nickname,
         label("affiliated", Individual.affiliation_id is not None),
-        Individual.valid_state,  
+        Individual.valid_state,
         Individual.valid_since,
         Individual.valid_until,
     ).order_by(asc(Individual.name))
@@ -192,6 +192,7 @@ def person_affiliation(session, name: str) -> Optional[str]:
         return None
     return person.affiliation.name
 
+
 def orgs_names_lookup(session):
     q = select(Organization.name).order_by(asc(Organization.name))
     return session.scalars(q).all()
@@ -202,3 +203,20 @@ def orgs_lookup(session):
         Organization.name, Organization.acronym, Organization.website_url, Organization.email
     ).order_by(asc(Organization.name))
     return session.execute(q).all()
+
+
+def org_update(session, name: str, acronym: str, website_url: str, email: str) -> None:
+    with session.begin():
+        q = select(Organization).where(Organization.name == name)
+        organization = session.scalars(q).one_or_none()
+        log.info("ORGANIZATION %s", organization)
+        if organization:
+            organization.acronym = acronym
+            organization.website_url = website_url
+            organization.email = email
+            log.info("YA EXISTE Y LA MODIFICAMOS A %s", organization)
+        else:
+            organization = Organization(
+                name=name, acronym=acronym, website_url=website_url, email=email
+            )
+        session.add(organization)
