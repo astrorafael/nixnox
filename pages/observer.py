@@ -1,7 +1,7 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Optional, Any, Iterable, Callable
+from typing import Optional, Any, Iterable, Tuple, Callable
 from datetime import datetime, date
 
 import streamlit as st
@@ -89,7 +89,8 @@ def person_affiliation(_conn, name) -> Optional[str]:
 
 def init_state_person() -> None:
     # Table above
-    st.session_state.persons_table = None
+    with conn.session as session:
+        st.session_state["persons_table"] = db.persons_lookup(session)
     st.session_state.selected_person = None
     # Form below
     st.session_state.person_form_data = person_form_data
@@ -97,7 +98,8 @@ def init_state_person() -> None:
 
 def init_state_org() -> None:
     # Table above
-    st.session_state.orgs_table = None
+    with conn.session as session:
+        st.session_state["orgs_table"] = db.orgs_lookup(session)
     st.session_state.selected_org = None
     # Form below
     st.session_state.org_form_data = org_form_data
@@ -154,8 +156,6 @@ def on_selected_org() -> None:
 
 def view_person_list(table: Any) -> None:
     with st.expander("👤 Existing Persons"):
-        with conn.session as session:
-            st.session_state.persons_table = db.persons_lookup(session)
             st.dataframe(
                 table,
                 key="PersonDF",
@@ -167,8 +167,6 @@ def view_person_list(table: Any) -> None:
 
 def view_org_list(table: Any) -> None:
     with st.expander("🏢 Existing Organizations"):
-        with conn.session as session:
-            st.session_state.orgs_table = db.orgs_lookup(session)
             st.dataframe(
                 table,
                 key="OrganizationDF",
@@ -178,7 +176,7 @@ def view_org_list(table: Any) -> None:
             )
 
 
-def view_affiliation(form_data) -> None:
+def view_affiliation(form_data) -> Tuple[date, date, str]:
     available_aff = affiliations(conn)
     aff = person_affiliation(conn, form_data["name"])
     try:
@@ -189,13 +187,13 @@ def view_affiliation(form_data) -> None:
     with c1:
         ancient = date(2000, 1, 1)
         forever = date(2999, 12, 31)
-        st.date_input(
+        since = st.date_input(
             "Since",
             value=form_data["valid_since"],
             min_value=ancient,
             max_value="today",
         )
-        st.date_input(
+        until = st.date_input(
             "Until",
             value=form_data["valid_since"],
             min_value="today",
@@ -203,6 +201,7 @@ def view_affiliation(form_data) -> None:
         )
     with c2:
         option = st.selectbox("Organization", options=available_aff, index=index)
+    return since, until, option
 
 
 def view_person(form_data: dict[str]) -> None:
@@ -220,8 +219,8 @@ def view_person(form_data: dict[str]) -> None:
             st.error(str(e))
         st.divider()
         st.subheader("Affiliation")
-        view_affiliation(form_data)
-        st.form_submit_button(
+        since, until, option = view_affiliation(form_data)
+        submitted = st.form_submit_button(
             "**Submit**",
             help="Sumbit Observer data to database",
             type="primary",
@@ -252,7 +251,7 @@ def view_organization(form_data: dict[str]) -> None:
             email = EmailField(email=email)
         except ValidationError as e:
             st.error(str(e))
-        st.form_submit_button(
+        submitted = st.form_submit_button(
             "**Submit**",
             help="Sumbit Organization database",
             type="primary",
