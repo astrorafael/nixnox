@@ -1,7 +1,7 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Optional, Callable
+from typing import Optional, Any, Callable
 from datetime import datetime, date
 
 import streamlit as st
@@ -80,7 +80,7 @@ org_form_data = {
 def init_state_person() -> None:
     # Table above
     st.session_state.persons_table = None
-    st.session_state.selected_person_name = None
+    st.session_state.selected_person = None
     # Form below
     st.session_state.person_form_data = person_form_data
 
@@ -88,7 +88,7 @@ def init_state_person() -> None:
 def init_state_org() -> None:
     # Table above
     st.session_state.orgs_table = None
-    st.session_state.selected_org_name = None
+    st.session_state.selected_org = None
     # Form below
     st.session_state.org_form_data = org_form_data
 
@@ -121,8 +121,8 @@ def on_selected_person() -> None:
         # Clicked one row
         row = st.session_state.PersonDF.selection.rows[0]
         # name is the first item in the row
-        info = st.session_state.persons_table[row]
-        st.session_state.selected_person_name = info[0]
+        info = st.session_state["persons_table"][row]
+        st.session_state["selected_person"] = info
         new_form_data = {
             "name": info[0],
             "nickname": info[1],
@@ -131,11 +131,11 @@ def on_selected_person() -> None:
             "valid_since": info[4],
             "valid_until": info[5],
         }
-        st.session_state.person_form_data.update(new_form_data)
+        st.session_state["person_form_data"].update(new_form_data)
 
     else:
         # No rows clicked by unclicking
-        del st.session_state["selected_person_name"]
+        del st.session_state["selected_person"]
         del st.session_state["person_form_data"]
 
 
@@ -143,46 +143,46 @@ def on_selected_org() -> None:
     if st.session_state.OrganizationDF.selection.rows:
         row = st.session_state.OrganizationDF.selection.rows[0]
         # name is the first item in the row
-        info = st.session_state.orgs_table[row]
-        st.session_state.selected_org_name = info[0]
+        info = st.session_state["orgs_table"][row]
+        st.session_state["selected_org"] = info
         new_form_data = {
             "name": info[0],
             "acronym": info[1],
             "website_url": info[2],
             "email": info[3],
         }
-        st.session_state.org_form_data.update(new_form_data)
+        st.session_state["org_form_data"].update(new_form_data)
     else:
-        del st.session_state["selected_org_name"]
+        del st.session_state["selected_org"]
         del st.session_state["org_form_data"]
 
 
 # ----------------------
 
 
-def view_person_list() -> None:
+def view_person_list(table: Any) -> None:
     with st.expander("👤 Existing Persons"):
         with conn.session as session:
             st.session_state.persons_table = db.persons_lookup(session)
             st.dataframe(
-                st.session_state.persons_table,
+                table,
                 key="PersonDF",
                 hide_index=True,
-                on_select=on_selected_person,
                 selection_mode="single-row",
+                on_select=on_selected_person,
             )
 
 
-def view_org_list() -> None:
+def view_org_list(table: Any) -> None:
     with st.expander("🏢 Existing Organnizations"):
         with conn.session as session:
             st.session_state.orgs_table = db.orgs_lookup(session)
             st.dataframe(
-                st.session_state.orgs_table,
+                table,
                 key="OrganizationDF",
                 hide_index=True,
-                on_select=on_selected_org,
                 selection_mode="single-row",
+                on_select=on_selected_org,
             )
 
 
@@ -206,7 +206,6 @@ def view_affiliation(form_data) -> None:
         )
     with c2:
         option = st.selectbox("Organization", options=(), index=None)
-
 
 
 def view_person(form_data: dict[str]) -> None:
@@ -268,10 +267,10 @@ def view_all() -> None:
     st.title("✨ 🔭 Observer Data Entry")  # Initialize session state
     c1, c2 = st.columns(2)
     with c1:
-        view_person_list()
+        view_person_list(st.session_state["persons_table"])
         view_person(st.session_state["person_form_data"])
     with c2:
-        view_org_list()
+        view_org_list(st.session_state["orgs_table"])
         view_organization(st.session_state["org_form_data"])
 
 
