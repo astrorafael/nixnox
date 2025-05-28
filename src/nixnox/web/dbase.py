@@ -220,3 +220,12 @@ def org_update(session, name: str, acronym: str, website_url: str, email: str) -
                 name=name, acronym=acronym, website_url=website_url, email=email
             )
         session.add(organization)
+
+def org_delete(session, name: str) -> None:
+     with session.begin():
+        q = select(Organization).where(Organization.name == name)
+        organization = session.scalars(q).one_or_none()
+        if organization:
+            session.delete(organization)
+
+

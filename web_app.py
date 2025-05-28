@@ -37,8 +37,8 @@ pg = st.navigation(
             icon=":material/upload_file:",
         ),
         st.Page(
-            os.path.join("pages", "observer.py"),
-            title="Edit observer",
+            os.path.join("pages", "organization.py"),
+            title="Edit organization",
             icon=":material/edit:",
         ),
     ]
