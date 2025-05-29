@@ -99,7 +99,7 @@ def person_init(conn: SQLConnection) -> None:
             st.session_state["person"] = defaultdict(dict)
             st.session_state["person"]["table"] = db.persons_lookup(session)
             st.session_state["person"]["selected"] = None
-            st.session_state["person"]["form"] = person_default_form
+            st.session_state["person"]["form"].update(person_default_form)
             st.session_state["person"]["form_validated"] = False
             st.session_state["person"]["delete_button"] = False
 
@@ -117,9 +117,9 @@ def org_init(conn: SQLConnection) -> None:
 
 def on_person_selected() -> None:
     """Person dataframe callback function"""
-    if st.session_state.PersonDF.selection.rows:
+    if st.session_state.PersonDataFrame.selection.rows:
         # Clicked one row
-        row = st.session_state.PersonDF.selection.rows[0]
+        row = st.session_state.PersonDataFrame.selection.rows[0]
         # Get the whole row
         info = st.session_state["person"]["table"][row]
         new_form_data = {
@@ -137,12 +137,13 @@ def on_person_selected() -> None:
         # No rows clicked by unclicking
         st.session_state["person"]["selected"] = None
         st.session_state["person"]["delete_button"] = False
+        st.session_state["person"]["form"].update(person_default_form)
 
 
 def on_org_selected() -> None:
     """organization dataframe callback function"""
-    if st.session_state.OrganizationDF.selection.rows:
-        row = st.session_state.OrganizationDF.selection.rows[0]
+    if st.session_state.OrganizationDataFrame.selection.rows:
+        row = st.session_state.OrganizationDataFrame.selection.rows[0]
         # Get the whole row
         info = st.session_state["org"]["table"][row]
         new_form_data = {
@@ -157,6 +158,7 @@ def on_org_selected() -> None:
     else:
         st.session_state["org"]["selected"] = None
         st.session_state["org"]["delete_button"] = False
+        st.session_state["org"]["form"].update(org_default_form)
 
 
 def on_person_delete(**kwargs):
@@ -168,7 +170,7 @@ def on_person_delete(**kwargs):
             db.person_delete(session, name)
         st.session_state["person"]["selected"] = None
         st.session_state["person"]["delete_button"] = False
-        st.session_state["person"]["table"] = db.orgs_lookup(session)
+        st.session_state["person"]["table"] = db.persons_lookup(session)
         st.session_state["person"]["form"].update(person_default_form)
 
 
@@ -184,12 +186,6 @@ def on_org_delete(**kwargs):
         st.session_state["org"]["table"] = db.orgs_lookup(session)
         st.session_state["org"]["form"].update(org_default_form)
 
-
-def person_affiliation(conn: SQLConnection, name: str) -> Optional[str]:
-    with conn.session as session:
-        return db.person_affiliation(session, name)
-
-
 # ---------------
 # Views rendering
 # ----------------
@@ -199,7 +195,7 @@ def org_view_table(conn: SQLConnection, table: Any) -> None:
     with st.expander("🏢 Existing Organizations"):
         st.dataframe(
             table,
-            key="OrganizationDF",
+            key="OrganizationDataFrame",
             hide_index=True,
             selection_mode="single-row",
             on_select=on_org_selected,
@@ -218,7 +214,7 @@ def person_view_table(conn: SQLConnection, table: Any) -> None:
     with st.expander("👤 Existing Persons"):
         st.dataframe(
             table,
-            key="PersonDF",
+            key="PersonDataFrame",
             hide_index=True,
             selection_mode="single-row",
             on_select=on_person_selected,
@@ -243,7 +239,7 @@ def view_affiliation(conn: SQLConnection, form_data: dict[str, Any]) -> Tuple[da
         index = None
     c1, c2 = st.columns(2)
     with c1:
-        ancient = date(2000, 1, 1)
+        ancient = date(1940, 1, 1)
         forever = date(2999, 12, 31)
         since = st.date_input(
             "Since",
@@ -291,7 +287,7 @@ def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
                 db.person_update(
                     session, name.name, nickname.nickname, selected_affil, since, until
                 )
-                st.session_state["person"]["table"] = db.person_lookup(session)
+                st.session_state["person"]["table"] = db.persons_lookup(session)
                 st.session_state["person"]["selected"] = None
                 st.session_state["person"]["delete_button"] = False
             st.rerun()
