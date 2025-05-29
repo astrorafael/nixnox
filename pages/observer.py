@@ -186,6 +186,7 @@ def on_org_delete(**kwargs):
         st.session_state["org"]["table"] = db.orgs_lookup(session)
         st.session_state["org"]["form"].update(org_default_form)
 
+
 # ---------------
 # Views rendering
 # ----------------
@@ -345,6 +346,13 @@ def org_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
 
 def view_all(conn: SQLConnection) -> None:
     st.title("✨ 🔭 Observer Data Entry")
+    st.write(""" 
+        To add a new observer:
+
+        1. Make sure that the organization he/she is affiliated to already exists. 
+        2. If not exists, then **add the organization first**.
+        3. Add the observer.
+        """)
     c1, c2 = st.columns(2)
     with c1:
         person_view_table(conn, st.session_state["person"]["table"])
