@@ -210,7 +210,7 @@ def persons_lookup(session):
     )
     # make the union at the result set point
     # because return q1.union(q2) yields an SQLOperational Error
-    #return session.execute(q1.union(q2)).all()
+    # return session.execute(q1.union(q2)).all()
     return session.execute(q1).all() + session.execute(q2).all()
 
 
@@ -228,6 +228,29 @@ def person_delete(session, name: str) -> None:
         person = session.scalars(q).one_or_none()
         if person:
             session.delete(person)
+
+
+def person_clone(
+    session,
+    name: str,
+    nickname: str,
+    affiliation: str,
+    valid_since: datetime,
+    valid_until: datetime,
+    valid_state: ValidState,
+) -> None:
+    with session.begin():
+        qo = select(Organization.observer_id).where(Organization.name == affiliation)
+        affiliation_id = session.scalars(qo).one_or_none()
+        person = Individual(
+            name=name,
+            nickname=nickname,
+            affiliation_id=affiliation_id,
+            valid_since=valid_since,
+            valid_until=valid_until,
+            valid_state=ValidState.CURRENT,
+        )
+        session.add(person)
 
 
 def person_update(

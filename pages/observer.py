@@ -102,6 +102,7 @@ def person_init(conn: SQLConnection) -> None:
             st.session_state["person"]["form"].update(person_default_form)
             st.session_state["person"]["form_validated"] = False
             st.session_state["person"]["delete_button"] = False
+            st.session_state["person"]["clone_button"] = False
 
 
 def org_init(conn: SQLConnection) -> None:
@@ -132,11 +133,13 @@ def on_person_selected() -> None:
         }
         st.session_state["person"]["selected"] = info
         st.session_state["person"]["delete_button"] = True
+        st.session_state["person"]["clone_button"] = True
         st.session_state["person"]["form"].update(new_form_data)
     else:
         # No rows clicked by unclicking
         st.session_state["person"]["selected"] = None
         st.session_state["person"]["delete_button"] = False
+        st.session_state["person"]["clone_button"] = False
         st.session_state["person"]["form"].update(person_default_form)
 
 
@@ -173,16 +176,23 @@ def on_person_delete(**kwargs):
         st.session_state["person"]["table"] = db.persons_lookup(session)
         st.session_state["person"]["form"].update(person_default_form)
 
+
 def on_person_clone(**kwargs):
     conn = kwargs["conn"]
     selected = st.session_state["person"]["selected"]
     if selected:
-        name = selected[0]
         with conn.session as session:
-            pass
-            #db.person_delete(session, name)
+            db.person_clone(
+                session,
+                name=selected[0],
+                nickname=selected[1],
+                affiliation=selected[2],
+                valid_state=selected[3],
+                valid_since=selected[4],
+                valid_until=selected[5],
+            )
         st.session_state["person"]["selected"] = None
-        st.session_state["person"]["delete_button"] = False
+        st.session_state["person"]["clone_button"] = False
         st.session_state["person"]["table"] = db.persons_lookup(session)
         st.session_state["person"]["form"].update(person_default_form)
 
@@ -243,7 +253,7 @@ def person_view_table(conn: SQLConnection, table: Any) -> None:
                 key="PersonCloneButton",
                 on_click=on_person_clone,
                 kwargs={"conn": conn},
-                disabled=not st.session_state["person"]["delete_button"],
+                disabled=not st.session_state["person"]["clone_button"],
             )
 
         with c2:
