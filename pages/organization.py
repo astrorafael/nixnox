@@ -66,7 +66,7 @@ org_form_data = {
 @st.cache_data(ttl=ttl())
 def affiliations(_conn) -> Iterable[str]:
     with _conn.session as session:
-        return db.orgs_names_lookup(session)
+        return db.org_names_lookup(session)
 
 
 @st.cache_data(ttl=ttl())
@@ -75,32 +75,32 @@ def person_affiliation(_conn, name) -> Optional[str]:
         return db.person_affiliation(session, name)
 
 
-def init_state_org(conn) -> None:
+def org_init(conn) -> None:
     with conn.session as session:
-        if "orgs_table" not in st.session_state:
-            st.session_state["orgs_table"] = db.orgs_lookup(session)
-            st.session_state["selected_org"] = None
+        if "org_table" not in st.session_state:
+            st.session_state["org_table"] = db.orgs_lookup(session)
         if "org_form_data" not in st.session_state:
             # Form below
             st.session_state.org_form_data = org_form_data
         elif st.session_state["org_form_data"]["submitted"]:
-            del st.session_state["orgs_table"]
             del st.session_state["selected_org"]
 
-def update_organization(conn, name, acronym, website_url, email):
+def org_update(conn, name, acronym, website_url, email):
     with conn.session as session:
         db.org_update(session, name.name, acronym.acronym, str(website_url.website_url), email.email)
+        st.session_state["org_table"] = db.orgs_lookup(session)
 
-def delete_organization(conn, name):
+def org_delete(conn, name):
     with conn.session as session:
         db.org_delete(session, name)
+        st.session_state["org_table"] = db.orgs_lookup(session)
 
-def on_selected_org() -> None:
+def on_org_selected() -> None:
     """organization dataframe callback function"""
     if st.session_state.OrganizationDF.selection.rows:
         row = st.session_state.OrganizationDF.selection.rows[0]
         # Get the whole row
-        info = st.session_state["orgs_table"][row]
+        info = st.session_state["org_table"][row]
         st.session_state["selected_org"] = info
         new_form_data = {
             "name": info[0],
@@ -115,32 +115,42 @@ def on_selected_org() -> None:
 
 
 # ----------------------
+def on_org_form_submitted():
+    form_data = st.session_state["org_form_data"]
+    name = form_data["name"]
+    acronym = form_data["acronym"]
+    website_url = form_data["website_url"]
+    email = form_data["email"]
+    if all(map(lambda x: x is not None, [name, acronym, website_url, email])):
+        org_update(conn, name, acronym, website_url, email)
+        form_data["validated"] = True
 
-@st.fragment
-def view_org_table(conn, table: Any) -> None: 
+
+def on_org_delete():
+    st.session_state.get("selected_org")
+    try:
+        name = st.session_state["selected_org"][0]
+        org_delete(conn, name)
+    except Exception as e:
+        st.write(e)
+    else:
+        del st.session_state["selected_org"]
+
+
+def org_view_table(conn, table: Any) -> None: 
     with st.expander("🏢 Existing Organizations"):
         st.dataframe(
             table,
             key="OrganizationDF",
             hide_index=True,
             selection_mode="single-row",
-            on_select=on_selected_org,
+            on_select=on_org_selected,
         )
-        clicked = st.button("Delete", icon="🗑️")
-        if clicked and st.session_state.get("selected_org"):
-            try:
-                name = st.session_state["selected_org"][0]
-                delete_organization(conn, name)
-            except Exception as e:
-                st.write(e)
-            else:
-                del st.session_state["selected_org"]
-                del st.session_state["orgs_table"]
-                st.success(f"Organization {name} deleted")
+        st.button("Delete", icon="🗑️", on_click=on_org_delete, )
                 
 
 
-def view_org_form(conn, form_data: dict[str]) -> None:
+def org_view_form(conn, form_data: dict[str]) -> None:
     with st.form("organization_data_entry_form", clear_on_submit=True):
         st.header("🏢 Organization Data Entry")
         name = st.text_input("Organization Full Name", value=form_data["name"])
@@ -171,11 +181,10 @@ def view_org_form(conn, form_data: dict[str]) -> None:
             "**Submit**",
             help="Submit Organization data to database",
             type="primary",
+            on_click=on_org_form_submitted,
             use_container_width=False,
         )
-        form_data["submitted"] = submitted
-        if submitted and all(map(lambda x: x is not None, [name, acronym, website_url, email])):
-            update_organization(conn, name, acronym, website_url, email)
+        if submitted and form_data.get("validated"):
             st.success("Updated!")
 
 
@@ -185,8 +194,8 @@ def view_all(conn) -> None:
     with c1:
         st.write("Placeholder")
     with c2:
-        view_org_table(conn, st.session_state["orgs_table"])
-        view_org_form(conn, st.session_state["org_form_data"])
+        org_view_table(conn, st.session_state["org_table"])
+        org_view_form(conn, st.session_state["org_form_data"])
 
-init_state_org(conn)
+org_init(conn)
 view_all(conn)
