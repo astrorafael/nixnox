@@ -173,6 +173,19 @@ def on_person_delete(**kwargs):
         st.session_state["person"]["table"] = db.persons_lookup(session)
         st.session_state["person"]["form"].update(person_default_form)
 
+def on_person_clone(**kwargs):
+    conn = kwargs["conn"]
+    selected = st.session_state["person"]["selected"]
+    if selected:
+        name = selected[0]
+        with conn.session as session:
+            pass
+            #db.person_delete(session, name)
+        st.session_state["person"]["selected"] = None
+        st.session_state["person"]["delete_button"] = False
+        st.session_state["person"]["table"] = db.persons_lookup(session)
+        st.session_state["person"]["form"].update(person_default_form)
+
 
 def on_org_delete(**kwargs):
     conn = kwargs["conn"]
@@ -205,6 +218,7 @@ def org_view_table(conn: SQLConnection, table: Any) -> None:
             "Delete",
             icon="🗑️",
             key="OrganizationDeleteButton",
+            type="primary",
             on_click=on_org_delete,
             kwargs={"conn": conn},
             disabled=not st.session_state["org"]["delete_button"],
@@ -220,14 +234,28 @@ def person_view_table(conn: SQLConnection, table: Any) -> None:
             selection_mode="single-row",
             on_select=on_person_selected,
         )
-        st.button(
-            "Delete",
-            icon="🗑️",
-            key="PersonDeleteButton",
-            on_click=on_person_delete,
-            kwargs={"conn": conn},
-            disabled=not st.session_state["person"]["delete_button"],
-        )
+        c1, c2 = st.columns(2)
+        with c1:
+            st.button(
+                "Clone",
+                icon="🗑️",
+                type="secondary",
+                key="PersonCloneButton",
+                on_click=on_person_clone,
+                kwargs={"conn": conn},
+                disabled=not st.session_state["person"]["delete_button"],
+            )
+
+        with c2:
+            st.button(
+                "Delete",
+                icon="🗑️",
+                type="primary",
+                key="PersonDeleteButton",
+                on_click=on_person_delete,
+                kwargs={"conn": conn},
+                disabled=not st.session_state["person"]["delete_button"],
+            )
 
 
 def view_affiliation(

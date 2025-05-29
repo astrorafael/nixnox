@@ -187,7 +187,7 @@ def persons_lookup(session):
         Individual.valid_state,
         Individual.valid_since,
         Individual.valid_until,
-    ).order_by(asc(Individual.name))
+    ).order_by(asc(Individual.name), asc(Individual.valid_since))
     return session.execute(q).all()
 
 
