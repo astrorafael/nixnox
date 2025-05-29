@@ -110,7 +110,7 @@ def org_init(conn: SQLConnection) -> None:
             st.session_state["org"] = defaultdict(dict)
             st.session_state["org"]["table"] = db.orgs_lookup(session)
             st.session_state["org"]["selected"] = None
-            st.session_state["org"]["form"] = org_default_form
+            st.session_state["org"]["form"].update(org_default_form)
             st.session_state["org"]["form_validated"] = False
             st.session_state["org"]["delete_button"] = False
 
@@ -230,7 +230,9 @@ def person_view_table(conn: SQLConnection, table: Any) -> None:
         )
 
 
-def view_affiliation(conn: SQLConnection, form_data: dict[str, Any]) -> Tuple[date, date, str]:
+def view_affiliation(
+    conn: SQLConnection, form_data: dict[str, Any]
+) -> Tuple[date, date, ValidState, str]:
     with conn.session as session:
         available_affiliations = db.orgs_names_lookup(session)
         affiliation = db.person_affiliation(session, form_data["name"])
@@ -238,7 +240,8 @@ def view_affiliation(conn: SQLConnection, form_data: dict[str, Any]) -> Tuple[da
         index = available_affiliations.index(affiliation)
     except ValueError:
         index = None
-    c1, c2 = st.columns(2)
+    selected_affil = st.selectbox("Organization", options=available_affiliations, index=index)
+    c1, c2, c3 = st.columns(3)
     with c1:
         ancient = date(1940, 1, 1)
         forever = date(2999, 12, 31)
@@ -248,15 +251,18 @@ def view_affiliation(conn: SQLConnection, form_data: dict[str, Any]) -> Tuple[da
             min_value=ancient,
             max_value=forever,
         )
+    with c2:
         until = st.date_input(
             "Until",
             value=form_data["valid_until"],
             min_value=ancient,
             max_value=forever,
         )
-    with c2:
-        selected_affil = st.selectbox("Organization", options=available_affiliations, index=index)
-    return since, until, selected_affil
+    with c3:
+        states = [s.value for s in ValidState]
+        j = states.index(form_data["valid_state"])  # No need to check boundaries
+        state = st.selectbox("Affiliation state", options=states, index=j)
+    return since, until, state, selected_affil
 
 
 def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
@@ -275,7 +281,7 @@ def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
             st.error("❌ nickname is not valid")
             nickname = None
         st.subheader("Affiliation")
-        since, until, selected_affil = view_affiliation(conn, form_data)
+        since, until, state, selected_affil = view_affiliation(conn, form_data)
         submitted = st.form_submit_button(
             "**Submit**",
             help="Submit Observer data to database",
@@ -286,7 +292,7 @@ def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
         if submitted and all_valid:
             with conn.session as session:
                 db.person_update(
-                    session, name.name, nickname.nickname, selected_affil, since, until
+                    session, name.name, nickname.nickname, selected_affil, since, until, state
                 )
                 st.session_state["person"]["table"] = db.persons_lookup(session)
                 st.session_state["person"]["selected"] = None

@@ -214,6 +214,7 @@ def person_update(
     affiliation: str,
     valid_since: datetime,
     valid_until: datetime,
+    valid_state: ValidState,
 ) -> None:
     with session.begin():
         qp = select(Individual).where(Individual.name == name)
@@ -242,6 +243,7 @@ def person_update(
             person.affiliation = org
             person.valid_since = valid_since
             person.valid_until = valid_until
+            person.valid_state = valid_state
         session.add(person)
 
 
