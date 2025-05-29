@@ -17,6 +17,7 @@ from typing import Optional
 # =====================
 
 from sqlalchemy import select, func, desc, asc, label
+from sqlalchemy.orm import aliased
 from streamlit.logger import get_logger
 
 # -------------
@@ -180,15 +181,37 @@ def obs_export(session, obs_tag: str) -> str:
 
 def persons_lookup(session):
     """Person summary search with several constratints"""
-    q = select(
-        Individual.name,
-        Individual.nickname,
-        label("affiliated", Individual.affiliation_id is not None),
-        Individual.valid_state,
-        Individual.valid_since,
-        Individual.valid_until,
-    ).order_by(asc(Individual.name), asc(Individual.valid_since))
-    return session.execute(q).all()
+    # Alias is needed to perform a table join on itself
+    OrgAlias = aliased(Organization)
+    q1 = (
+        select(
+            Individual.name,
+            Individual.nickname,
+            label("affiliation", OrgAlias.name),
+            Individual.valid_state,
+            Individual.valid_since,
+            Individual.valid_until,
+        )
+        .select_from(Individual)
+        .join(OrgAlias, Individual.affiliation_id == OrgAlias.observer_id)
+        .order_by(asc(Individual.name), asc(Individual.valid_since))
+    )
+    q2 = (
+        select(
+            Individual.name,
+            Individual.nickname,
+            label("affiliation", None),
+            Individual.valid_state,
+            Individual.valid_since,
+            Individual.valid_until,
+        )
+        .where(Individual.affiliation_id == None)  # noqa: E711
+        .order_by(asc(Individual.name), asc(Individual.valid_since))
+    )
+    # make the union at the result set point
+    # because return q1.union(q2) yields an SQLOperational Error
+    #return session.execute(q1.union(q2)).all()
+    return session.execute(q1).all() + session.execute(q2).all()
 
 
 def person_affiliation(session, name: str) -> Optional[str]:
