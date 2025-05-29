@@ -8,6 +8,7 @@
 # System wide imports
 # -------------------
 
+from datetime import datetime
 from io import StringIO
 from typing import Optional
 
@@ -22,7 +23,7 @@ from streamlit.logger import get_logger
 # Local imports
 # -------------
 
-from ..lib import PhotometerModel
+from ..lib import PhotometerModel, ValidState
 
 from ..lib.dbase.model import (
     Photometer,
@@ -172,8 +173,13 @@ def obs_export(session, obs_tag: str) -> str:
     return output_file.getvalue()
 
 
+# ========================
+# OBSERVER PAGE MANAGEMENT
+# ========================
+
+
 def persons_lookup(session):
-    """Generic Obsewrvation summary search with several constratints"""
+    """Person summary search with several constratints"""
     q = select(
         Individual.name,
         Individual.nickname,
@@ -191,6 +197,52 @@ def person_affiliation(session, name: str) -> Optional[str]:
     if not person or not person.affiliation:
         return None
     return person.affiliation.name
+
+
+def person_delete(session, name: str) -> None:
+    with session.begin():
+        q = select(Individual).where(Individual.name == name)
+        person = session.scalars(q).one_or_none()
+        if person:
+            session.delete(person)
+
+
+def person_update(
+    session,
+    name: str,
+    nickname: str,
+    affiliation: str,
+    valid_since: datetime,
+    valid_until: datetime,
+) -> None:
+    with session.begin():
+        qp = select(Individual).where(Individual.name == name)
+        qo = select(Organization).where(Organization.name == affiliation)
+        org = session.scalars(qo).one()
+        persons = session.scalars(qp).all()
+        log.info("PERSONS %s", persons)
+        # new person ?
+        if len(persons) == 0:
+            person = Individual(
+                name=name,
+                nickname=nickname,
+                valid_since=valid_since,
+                valid_until=valid_until,
+                valid_state=ValidState.CURRENT,
+            )
+            person.affiliation = org
+        else:
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # ESTO ES PROVISIONAL !!!!!!!!
+            # HAY QUE DARLE UNA BUENA PENSADA
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            assert len(persons) == 1
+            person = persons[0]
+            person.nickname = nickname
+            person.affiliation = org
+            person.valid_since = valid_since
+            person.valid_until = valid_until
+        session.add(person)
 
 
 def orgs_names_lookup(session):
@@ -221,11 +273,10 @@ def org_update(session, name: str, acronym: str, website_url: str, email: str) -
             )
         session.add(organization)
 
+
 def org_delete(session, name: str) -> None:
-     with session.begin():
+    with session.begin():
         q = select(Organization).where(Organization.name == name)
         organization = session.scalars(q).one_or_none()
         if organization:
             session.delete(organization)
-
-

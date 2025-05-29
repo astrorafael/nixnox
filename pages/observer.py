@@ -1,34 +1,50 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Optional, Any, Iterable, Tuple
+
+from collections import defaultdict
+from typing import Optional, Any, Tuple
 from datetime import datetime, date
 
+# ---------------------
+# Thirs party libraries
+# ---------------------
+
 import streamlit as st
+from streamlit.connections import SQLConnection
 from streamlit.logger import get_logger
 
-from pydantic import BaseModel, field_validator, ValidationError, EmailStr, HttpUrl
+from pydantic import BaseModel, ValidationError, EmailStr, HttpUrl
+
+# -----------
+# own library
+# -----------
 
 import nixnox.web.dbase as db
-from nixnox.web.streamlit import ttl
 from nixnox.lib import ValidState
 
 # ---------------
 # Pydantic Models
 # ---------------
 
-
 DEF_ORG_TEXT = "<Enter organization name here>"
 DEF_PERSON_TEXT = "<Enter your full name here>"
+
 
 class NameField(BaseModel):
     name: str
 
-    @field_validator('name')
-    def not_sample_text(cls, v):
-        if v.strip() in (DEF_ORG_TEXT, DEF_PERSON_TEXT):
-            raise ValueError(f"Sample text is not valid: {v.strip()}")
-        return v
+
+class AcronymField(BaseModel):
+    acronym: Optional[str] = None
+
+
+class WebField(BaseModel):
+    website_url: Optional[HttpUrl] = None
+
+
+class EmailField(BaseModel):
+    email: Optional[EmailStr] = None
 
 
 class NickField(BaseModel):
@@ -47,27 +63,21 @@ class ValidStateField(BaseModel):
     valid_state: Optional[ValidState] = None
 
 
-class AcronymField(BaseModel):
-    acronym: Optional[str] = None
-
-
-class WebField(BaseModel):
-    website_url: Optional[HttpUrl] = None
-
-
-class EmailField(BaseModel):
-    email: Optional[EmailStr] = None
-
-
 # ----------------
 # Global variables
 # ----------------
 
 log = get_logger(__name__)
-conn = st.connection("env:NX_ENV", type="sql")
+conn: SQLConnection = st.connection("env:NX_ENV", type="sql")
 
+org_default_form = {
+    "name": DEF_ORG_TEXT,
+    "acronym": None,
+    "website_url": None,
+    "email": None,
+}
 
-person_form_data = {
+person_default_form = {
     "name": DEF_PERSON_TEXT,
     "nickname": None,
     "affiliation": None,
@@ -75,15 +85,6 @@ person_form_data = {
     "valid_until": None,
     "valid_state": ValidState.CURRENT,
     "affiliated": False,
-    "submitted": False,
-}
-
-org_form_data = {
-    "name": DEF_ORG_TEXT,
-    "acronym": None,
-    "website_url": None,
-    "email": None,
-    "submitted": False,
 }
 
 
@@ -92,59 +93,35 @@ org_form_data = {
 # ---------------------
 
 
-@st.cache_data(ttl=ttl())
-def affiliations(_conn) -> Iterable[str]:
-    with _conn.session as session:
-        return db.orgs_names_lookup(session)
-
-
-@st.cache_data(ttl=ttl())
-def person_affiliation(_conn, name) -> Optional[str]:
-    with _conn.session as session:
-        return db.person_affiliation(session, name)
-
-
-def init_state_person() -> None:
-    if "person_form_data" not in st.session_state:
-        # Table above
-        with conn.session as session:
-            st.session_state["persons_table"] = db.persons_lookup(session)
-        st.session_state.selected_person = None
-        # Form below
-        st.session_state.person_form_data = person_form_data
-    elif st.session_state["person_form_data"]["submitted"]:
-        with conn.session as session:
-            st.session_state["persons_table"] = db.persons_lookup(session)
-
-
-def init_state_org() -> None:
-    if "org_form_data" not in st.session_state:
-        # Table above
-        with conn.session as session:
-            st.session_state["orgs_table"] = db.orgs_lookup(session)
-        st.session_state["selected_org"] = None
-        # Form below
-        st.session_state.org_form_data = org_form_data
-    elif st.session_state["org_form_data"]["submitted"]:
-        st.write("CUCUU")
-        with conn.session as session:
-            st.session_state["orgs_table"] = db.orgs_lookup(session)
-            st.session_state["selected_org"] = None
-
-
-def update_organization(name, acronym, website_url, email):
+def person_init(conn: SQLConnection) -> None:
     with conn.session as session:
-        db.org_update(session, name.name, acronym.acronym, str(website_url.website_url), email.email)
+        if "person" not in st.session_state:
+            st.session_state["person"] = defaultdict(dict)
+            st.session_state["person"]["table"] = db.persons_lookup(session)
+            st.session_state["person"]["selected"] = None
+            st.session_state["person"]["form"] = person_default_form
+            st.session_state["person"]["form_validated"] = False
+            st.session_state["person"]["delete_button"] = False
 
 
-def on_selected_person() -> None:
+def org_init(conn: SQLConnection) -> None:
+    with conn.session as session:
+        if "org" not in st.session_state:
+            st.session_state["org"] = defaultdict(dict)
+            st.session_state["org"]["table"] = db.orgs_lookup(session)
+            st.session_state["org"]["selected"] = None
+            st.session_state["org"]["form"] = org_default_form
+            st.session_state["org"]["form_validated"] = False
+            st.session_state["org"]["delete_button"] = False
+
+
+def on_person_selected() -> None:
     """Person dataframe callback function"""
     if st.session_state.PersonDF.selection.rows:
         # Clicked one row
         row = st.session_state.PersonDF.selection.rows[0]
         # Get the whole row
-        info = st.session_state["persons_table"][row]
-        st.session_state["selected_person"] = info
+        info = st.session_state["person"]["table"][row]
         new_form_data = {
             "name": info[0],
             "nickname": info[1],
@@ -153,62 +130,115 @@ def on_selected_person() -> None:
             "valid_since": info[4],
             "valid_until": info[5],
         }
-        st.session_state["person_form_data"].update(new_form_data)
+        st.session_state["person"]["selected"] = info
+        st.session_state["person"]["delete_button"] = True
+        st.session_state["person"]["form"].update(new_form_data)
     else:
         # No rows clicked by unclicking
-        del st.session_state["selected_person"]
-        del st.session_state["person_form_data"]
+        st.session_state["person"]["selected"] = None
+        st.session_state["person"]["delete_button"] = False
 
 
-def on_selected_org() -> None:
+def on_org_selected() -> None:
     """organization dataframe callback function"""
     if st.session_state.OrganizationDF.selection.rows:
         row = st.session_state.OrganizationDF.selection.rows[0]
         # Get the whole row
-        info = st.session_state["orgs_table"][row]
-        st.session_state["selected_org"] = info
+        info = st.session_state["org"]["table"][row]
         new_form_data = {
             "name": info[0],
             "acronym": info[1],
             "website_url": info[2],
             "email": info[3],
         }
-        st.session_state["org_form_data"].update(new_form_data)
+        st.session_state["org"]["selected"] = info
+        st.session_state["org"]["delete_button"] = True
+        st.session_state["org"]["form"].update(new_form_data)
     else:
-        del st.session_state["selected_org"]
-        del st.session_state["org_form_data"]
+        st.session_state["org"]["selected"] = None
+        st.session_state["org"]["delete_button"] = False
 
 
-# ----------------------
+def on_person_delete(**kwargs):
+    conn = kwargs["conn"]
+    selected = st.session_state["person"]["selected"]
+    if selected:
+        name = selected[0]
+        with conn.session as session:
+            db.person_delete(session, name)
+        st.session_state["person"]["selected"] = None
+        st.session_state["person"]["delete_button"] = False
+        st.session_state["person"]["table"] = db.orgs_lookup(session)
+        st.session_state["person"]["form"].update(person_default_form)
 
 
-def view_person_list(table: Any) -> None:
-    with st.expander("👤 Existing Persons"):
-        st.dataframe(
-            table,
-            key="PersonDF",
-            hide_index=True,
-            selection_mode="single-row",
-            on_select=on_selected_person,
-        )
+def on_org_delete(**kwargs):
+    conn = kwargs["conn"]
+    selected = st.session_state["org"]["selected"]
+    if selected:
+        name = selected[0]
+        with conn.session as session:
+            db.org_delete(session, name)
+        st.session_state["org"]["selected"] = None
+        st.session_state["org"]["delete_button"] = False
+        st.session_state["org"]["table"] = db.orgs_lookup(session)
+        st.session_state["org"]["form"].update(org_default_form)
 
 
-def view_org_list(table: Any) -> None: 
+def person_affiliation(conn: SQLConnection, name: str) -> Optional[str]:
+    with conn.session as session:
+        return db.person_affiliation(session, name)
+
+
+# ---------------
+# Views rendering
+# ----------------
+
+
+def org_view_table(conn: SQLConnection, table: Any) -> None:
     with st.expander("🏢 Existing Organizations"):
         st.dataframe(
             table,
             key="OrganizationDF",
             hide_index=True,
             selection_mode="single-row",
-            on_select=on_selected_org,
+            on_select=on_org_selected,
+        )
+        st.button(
+            "Delete",
+            icon="🗑️",
+            key="OrganizationDeleteButton",
+            on_click=on_org_delete,
+            kwargs={"conn": conn},
+            disabled=not st.session_state["org"]["delete_button"],
         )
 
 
-def view_affiliation(form_data) -> Tuple[date, date, str]:
-    available_aff = affiliations(conn)
-    aff = person_affiliation(conn, form_data["name"])
+def person_view_table(conn: SQLConnection, table: Any) -> None:
+    with st.expander("👤 Existing Persons"):
+        st.dataframe(
+            table,
+            key="PersonDF",
+            hide_index=True,
+            selection_mode="single-row",
+            on_select=on_person_selected,
+        )
+        st.button(
+            "Delete",
+            icon="🗑️",
+            key="PersonDeleteButton",
+            on_click=on_person_delete,
+            kwargs={"conn": conn},
+            disabled=not st.session_state["person"]["delete_button"],
+        )
+
+
+def view_affiliation(conn: SQLConnection, form_data: dict[str, Any]) -> Tuple[date, date, str]:
+    with conn.session as session:
+        available_affiliations = db.orgs_names_lookup(session)
+        affiliation = db.person_affiliation(session, form_data["name"])
     try:
-        index = available_aff.index(aff)
+        index = available_affiliations.index(affiliation)
     except ValueError:
         index = None
     c1, c2 = st.columns(2)
@@ -219,47 +249,57 @@ def view_affiliation(form_data) -> Tuple[date, date, str]:
             "Since",
             value=form_data["valid_since"],
             min_value=ancient,
-            max_value="today",
+            max_value=forever,
         )
         until = st.date_input(
             "Until",
-            value=form_data["valid_since"],
-            min_value="today",
+            value=form_data["valid_until"],
+            min_value=ancient,
             max_value=forever,
         )
     with c2:
-        option = st.selectbox("Organization", options=available_aff, index=index)
-    return since, until, option
+        selected_affil = st.selectbox("Organization", options=available_affiliations, index=index)
+    return since, until, selected_affil
 
 
-def view_person(form_data: dict[str]) -> None:
+def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
     with st.form("person_data_entry_form", clear_on_submit=True):
         st.header("👤 Person Data Entry")
         name = st.text_input("Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
-        except ValidationError as e:
+        except ValidationError:
             st.warning("⚠️ please, change name")
             name = None
         nickname = st.text_input("Nickname", value=form_data["nickname"])
         try:
             nickname = NickField(nickname=nickname)
-        except ValidationError as e:
-            st.error("acronym is not valid")
+        except ValidationError:
+            st.error("❌ nickname is not valid")
             nickname = None
         st.subheader("Affiliation")
-        since, until, option = view_affiliation(form_data)
+        since, until, selected_affil = view_affiliation(conn, form_data)
         submitted = st.form_submit_button(
             "**Submit**",
             help="Submit Observer data to database",
             type="primary",
             use_container_width=False,
         )
-        if submitted:
-            st.success("Updated!")
+        all_valid = all(map(lambda x: x is not None, [name, nickname]))
+        if submitted and all_valid:
+            with conn.session as session:
+                db.person_update(
+                    session, name.name, nickname.nickname, selected_affil, since, until
+                )
+                st.session_state["person"]["table"] = db.person_lookup(session)
+                st.session_state["person"]["selected"] = None
+                st.session_state["person"]["delete_button"] = False
+            st.rerun()
+        elif not all_valid:
+            st.error("Not Updated!")
 
 
-def view_organization(form_data: dict[str]) -> None:
+def org_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
     with st.form("organization_data_entry_form", clear_on_submit=True):
         st.header("🏢 Organization Data Entry")
         name = st.text_input("Organization Full Name", value=form_data["name"])
@@ -272,44 +312,52 @@ def view_organization(form_data: dict[str]) -> None:
         try:
             acronym = AcronymField(acronym=acronym)
         except ValidationError:
-            st.error("acronym is not valid")
+            st.error("❌ acronym is not valid")
             acronym = None
         website_url = st.text_input("🌎 Web Site", value=form_data["website_url"])
         try:
             website_url = WebField(website_url=website_url)
         except ValidationError:
-            st.error("URL format is not valid")
+            st.error("❌ URL format is not valid")
             website_url = None
         email = st.text_input("📧 Email", value=form_data["email"])
         try:
             email = EmailField(email=email)
         except ValidationError:
-            st.error("email format is not valid")
+            st.error("❌ email format is not valid")
             email = None
         submitted = st.form_submit_button(
             "**Submit**",
             help="Submit Organization data to database",
             type="primary",
+            # on_click=on_org_form_submitted,
             use_container_width=False,
         )
-        form_data["submitted"] = submitted
-        if submitted and all(map(lambda x: x is not None, [name, acronym, website_url, email])):
-            update_organization(name, acronym, website_url, email)
-            st.success("Updated!")
+        all_valid = all(map(lambda x: x is not None, [name, acronym, website_url, email]))
+        if submitted and all_valid:
+            with conn.session as session:
+                db.org_update(
+                    session, name.name, acronym.acronym, str(website_url.website_url), email.email
+                )
+                st.session_state["org"]["table"] = db.orgs_lookup(session)
+                st.session_state["org"]["selected"] = None
+                st.session_state["org"]["delete_button"] = False
+            st.rerun()
+        elif not all_valid:
+            st.error("Not Updated!")
 
 
-def view_all() -> None:
-    st.title("✨ 🔭 Observer Data Entry")  # Initialize session state
+def view_all(conn: SQLConnection) -> None:
+    st.title("✨ 🔭 Observer Data Entry")
     c1, c2 = st.columns(2)
     with c1:
-        view_person_list(st.session_state["persons_table"])
-        view_person(st.session_state["person_form_data"])
+        person_view_table(conn, st.session_state["person"]["table"])
+        person_view_form(conn, st.session_state["person"]["form"])
     with c2:
-        view_org_list(st.session_state["orgs_table"])
-        view_organization(st.session_state["org_form_data"])
+        org_view_table(conn, st.session_state["org"]["table"])
+        org_view_form(conn, st.session_state["org"]["form"])
 
 
-
-init_state_person()
-init_state_org()
-view_all()
+org_init(conn)
+person_init(conn)
+view_all(conn)
