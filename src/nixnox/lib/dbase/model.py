@@ -232,6 +232,8 @@ class Observer(Model):
     # Individual/Organoization full name
     name: Mapped[str] = mapped_column(String(255))
 
+    # We can't set an UniqueConstraint on name, valid_since because this applies
+    # only to Individuals
     __table_args__ = (
         {"extend_existing": True},  # needed for streamlit only :-(
     )
