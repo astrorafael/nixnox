@@ -84,7 +84,7 @@ def obs_summary_search(session, cond: dict = None):
             )
         # Add Observer conditions if any
         if cond["search_by_observer_name"]:
-            if cond["search_by_observer_type"] == ObserverType.Person:
+            if cond["search_by_observer_type"] == ObserverType.PERSON:
                 q = q.where(
                     Person.name.like("%" + cond["search_by_observer_name"] + "%"),
                 )

@@ -60,14 +60,12 @@ def get_observation_as_ecsv(_conn: SQLConnection, obs_tag: str) -> str:
         return db.obs_export(session, obs_tag)
 
 
-
 def obs_init(conn: SQLConnection) -> None:
     if "summary" not in st.session_state:
         st.session_state["summary"] = defaultdict(dict)
         st.session_state["summary"]["table"] = obs_summary(conn, None)
         st.session_state["summary"]["selected"] = None
         st.session_state["summary"]["form"].update(obs_default_form)
-     
 
 
 def on_selected_obs() -> None:
@@ -81,27 +79,22 @@ def on_selected_obs() -> None:
         st.session_state["summary"]["selected"] = None
 
 
-
-def on_form_submit() -> None:
-    search_conditions = {
+def on_obs_form_submit() -> None:
+    conditions = {
         k: st.session_state[k] for k in st.session_state.keys() if k.startswith("search_")
     }
-    if search_conditions:
-        search_conditions["search_by_phot_model"] = PhotometerModel(
-            search_conditions["search_by_phot_model"]
-        )
-        search_conditions["search_by_observer_type"] = ObserverType(
-            search_conditions["search_by_observer_type"]
-        )
-        result_set = obs_summary(conn, search_conditions)
-        #st.write(result_set)
-        st.session_state.result_table = result_set
-
+    if conditions:
+        conditions["search_by_phot_model"] = PhotometerModel(conditions["search_by_phot_model"])
+        conditions["search_by_observer_type"] = ObserverType(conditions["search_by_observer_type"])
+        st.session_state["summary"]["table"] = obs_summary(conn, conditions)
+        st.session_state["summary"]["selected"] = None
 
 def obs_view_form() -> None:
     with st.form("Search", clear_on_submit=True):
         st.write("## Observations finder")
-        st.slider("Max. number of results", value=10, min_value=1, max_value=100, key="search_limit")
+        st.slider(
+            "Max. number of results", value=10, min_value=1, max_value=100, key="search_limit"
+        )
         with st.expander("Filter by date range"):
             ancient = date(
                 2000,
@@ -109,7 +102,7 @@ def obs_view_form() -> None:
                 1,
             )
             today = date.today()
-            #month_ago = today - relativedelta(months=1)
+            # month_ago = today - relativedelta(months=1)
             st.date_input(
                 "Range",
                 value=(ancient, today),
@@ -180,7 +173,7 @@ def obs_view_form() -> None:
             icon=":material/search:",
             type="primary",
             use_container_width=False,
-            #on_click=on_submit,
+            on_click=on_obs_form_submit,
         )
 
 
@@ -188,7 +181,9 @@ def obs_view_header(conn: SQLConnection) -> None:
     st.title("**Available observations**")
     st.write(f"There are {obs_nsummaries(conn)} stored observations available.")
 
+
 def obs_view_table(conn: SQLConnection) -> None:
+    st.header("Search results")
     st.dataframe(
         st.session_state["summary"]["table"],
         key="ObservationDataFrame",
