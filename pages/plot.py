@@ -60,13 +60,13 @@ def get_measurements(_session, obs_tag: str):
 
 @st.cache_data(ttl=ttl())
 def plot(
-    obs_tag: str, azimuth, zenital, magnitude, _observation, _observer, _location, _photometer
+    obs_tag: str, _azimuth, _zenital, _magnitude, _observation, _observer, _location, _photometer
 ):
     return mpl.plot(
         obs_tag,
-        azimuth,
-        zenital,
-        magnitude,
+        _azimuth,
+        _zenital,
+        _magnitude,
         observation=_observation,
         observer=_observer,
         location=_location,
@@ -84,9 +84,8 @@ def plot_init(conn: SQLConnection) -> str | None:
 def plot_view(conn: SQLConnection, obs_tag: str) -> None:
     with conn.session as session:
         observation, observer, location, photometer = db.obs_details(session, obs_tag)
-        measurements = get_measurements(session, obs_tag)
+        measurements = db.obs_measurements(session, obs_tag)
         measurements = Table([m.to_dict() for m in measurements])
-        st.write(measurements)
         with RLock():
             figure = plot(
                 obs_tag,
