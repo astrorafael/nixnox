@@ -308,19 +308,22 @@ def view_affiliation(
 def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
     with st.form("person_data_entry_form", clear_on_submit=True):
         st.header("👤 Person Data Entry")
-        observer_id = st.number_input("Id", value=form_data["observer_id"], disabled=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            observer_id = st.number_input("Id (read only)", value=form_data["observer_id"], disabled=True)
+        with c2:
+            nickname = st.text_input("Nickname", value=form_data["nickname"])
+        try:
+            nickname = NickField(nickname=nickname)
+        except ValidationError:
+            st.error("❌ nickname is not valid")
+            nickname = None
         name = st.text_input("Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
         except ValidationError:
             st.warning("⚠️ please, change name")
             name = None
-        nickname = st.text_input("Nickname", value=form_data["nickname"])
-        try:
-            nickname = NickField(nickname=nickname)
-        except ValidationError:
-            st.error("❌ nickname is not valid")
-            nickname = None
         st.subheader("Affiliation")
         since, until, state, selected_affil = view_affiliation(conn, form_data)
         submitted = st.form_submit_button(
