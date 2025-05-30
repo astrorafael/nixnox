@@ -191,6 +191,7 @@ def persons_lookup(session):
     OrgAlias = aliased(Organization)
     q1 = (
         select(
+            Person.observer_id,
             Person.name,
             Person.nickname,
             label("affiliation", OrgAlias.org_name),
@@ -204,6 +205,7 @@ def persons_lookup(session):
     )
     q2 = (
         select(
+            Person.observer_id,
             Person.name,
             Person.nickname,
             label("affiliation", None),
@@ -221,17 +223,17 @@ def persons_lookup(session):
     
 
 
-def person_affiliation(session, name: str) -> Optional[str]:
-    q = select(Person).where(Person.name == name)
+def person_affiliation(session, observer_id: int) -> Optional[str]:
+    q = select(Person).where(Person.observer_id == observer_id)
     person = session.scalars(q).one_or_none()
     if not person or not person.affiliation:
         return None
     return person.affiliation.org_name
 
 
-def person_delete(session, name: str) -> None:
+def person_delete(session, observer_id: int) -> None:
     with session.begin():
-        q = select(Person).where(Person.name == name)
+        q = select(Person).where(Person.observer_id == observer_id)
         person = session.scalars(q).one_or_none()
         if person:
             session.delete(person)
@@ -262,6 +264,7 @@ def person_clone(
 
 def person_update(
     session,
+    observer_id: int,
     name: str,
     nickname: str,
     affiliation: str,
@@ -270,33 +273,27 @@ def person_update(
     valid_state: ValidState,
 ) -> None:
     with session.begin():
-        qp = select(Person).where(Person.name == name)
+        qp = select(Person).where(Person.observer_id == observer_id)
         qo = select(Organization).where(Organization.org_name == affiliation)
-        org = session.scalars(qo).one()
-        persons = session.scalars(qp).all()
-        log.info("PERSONS %s", persons)
+        org = session.scalars(qo).one_or_none()
+        person = session.scalars(qp).one_or_none()
         # new person ?
-        if len(persons) == 0:
+        if not person:
             person = Person(
                 name=name,
                 nickname=nickname,
                 valid_since=valid_since,
                 valid_until=valid_until,
-                valid_state=ValidState.CURRENT,
+                valid_state=valid_state,
             )
-            person.affiliation = org
         else:
-            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            # ESTO ES PROVISIONAL !!!!!!!!
-            # HAY QUE DARLE UNA BUENA PENSADA
-            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            assert len(persons) == 1
-            person = persons[0]
             person.nickname = nickname
             person.affiliation = org
             person.valid_since = valid_since
             person.valid_until = valid_until
             person.valid_state = valid_state
+        if org:
+            person.affiliation = org
         session.add(person)
 
 

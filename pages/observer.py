@@ -80,6 +80,7 @@ org_default_form = {
 }
 
 person_default_form = {
+    "observer_id": None,
     "name": DEF_PERSON_TEXT,
     "nickname": None,
     "affiliation": None,
@@ -124,12 +125,13 @@ def on_person_selected() -> None:
         # Get the whole row
         info = st.session_state["person"]["table"][row]
         new_form_data = {
-            "name": info[0],
-            "nickname": info[1],
-            "affiliated": info[2],
-            "valid_state": info[3],
-            "valid_since": info[4],
-            "valid_until": info[5],
+            "observer_id": info[0],
+            "name": info[1],
+            "nickname": info[2],
+            "affiliated": info[3],
+            "valid_state": info[4],
+            "valid_since": info[5],
+            "valid_until": info[6],
         }
         st.session_state["person"]["selected"] = info
         st.session_state["person"]["delete_button"] = True
@@ -168,9 +170,9 @@ def on_person_delete(**kwargs):
     conn = kwargs["conn"]
     selected = st.session_state["person"]["selected"]
     if selected:
-        name = selected[0]
+        observer_id = selected[0]
         with conn.session as session:
-            db.person_delete(session, name)
+            db.person_delete(session, observer_id)
         st.session_state["person"]["selected"] = None
         st.session_state["person"]["delete_button"] = False
         st.session_state["person"]["table"] = db.persons_lookup(session)
@@ -184,12 +186,12 @@ def on_person_clone(**kwargs):
         with conn.session as session:
             db.person_clone(
                 session,
-                name=selected[0],
-                nickname=selected[1],
-                affiliation=selected[2],
-                valid_state=selected[3],
-                valid_since=selected[4],
-                valid_until=selected[5],
+                name=selected[1],
+                nickname=selected[2],
+                affiliation=selected[3],
+                valid_state=selected[4],
+                valid_since=selected[5],
+                valid_until=selected[6],
             )
         st.session_state["person"]["selected"] = None
         st.session_state["person"]["clone_button"] = False
@@ -273,7 +275,7 @@ def view_affiliation(
 ) -> Tuple[date, date, ValidState, str]:
     with conn.session as session:
         available_affiliations = db.orgs_names_lookup(session)
-        affiliation = db.person_affiliation(session, form_data["name"])
+        affiliation = db.person_affiliation(session, form_data["observer_id"])
     try:
         index = available_affiliations.index(affiliation)
     except ValueError:
@@ -306,6 +308,7 @@ def view_affiliation(
 def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
     with st.form("person_data_entry_form", clear_on_submit=True):
         st.header("👤 Person Data Entry")
+        observer_id = st.number_input("Id", value=form_data["observer_id"], disabled=True)
         name = st.text_input("Full Name", value=form_data["name"])
         try:
             name = NameField(name=name)
@@ -330,7 +333,7 @@ def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
         if submitted and all_valid:
             with conn.session as session:
                 db.person_update(
-                    session, name.name, nickname.nickname, selected_affil, since, until, state
+                    session, observer_id, name.name, nickname.nickname, selected_affil, since, until, state
                 )
                 st.session_state["person"]["table"] = db.persons_lookup(session)
                 st.session_state["person"]["selected"] = None
