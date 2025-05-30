@@ -227,13 +227,12 @@ class Observer(Model):
 
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
-    # type: Mapped[ObserverCol] = mapped_column(ObserverCol, nullable=False)
     type: Mapped[ObserverType] = mapped_column(ObserverCol, nullable=False)
-    # Individual/Organoization full name
+    # Person/Organization full name
     name: Mapped[str] = mapped_column(String(255))
 
     # We can't set an UniqueConstraint on name, valid_since because this applies
-    # only to Individuals
+    # only to Persons
     __table_args__ = (
         {"extend_existing": True},  # needed for streamlit only :-(
     )
@@ -267,11 +266,11 @@ class Organization(Observer):
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Organization acronym
     acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
-    # Individual/Organization website URL
+    # Person/Organization website URL
     website_url: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
-    # Individual/Organization contact email
+    # Person/Organization contact email
     email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
-    # Version control attributes for Individuals that change affiliations
+    # Version control attributes for Persons that change affiliations
 
     __mapper_args__ = {
         "polymorphic_identity": ObserverType.ORG,
@@ -286,11 +285,11 @@ class Organization(Observer):
         return r
 
 
-class Individual(Observer):
+class Person(Observer):
     observer_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
-    # Individual full name
+    # Person full name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
     # Observer nickname for individuals, optional as it shares data with Organozation
     nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)

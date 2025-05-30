@@ -29,7 +29,7 @@ from ..lib import PhotometerModel, ValidState
 from ..lib.dbase.model import (
     Photometer,
     Observer,
-    Individual,
+    Person,
     Organization,
     Observation,
     Location,
@@ -185,28 +185,28 @@ def persons_lookup(session):
     OrgAlias = aliased(Organization)
     q1 = (
         select(
-            Individual.name,
-            Individual.nickname,
+            Person.name,
+            Person.nickname,
             label("affiliation", OrgAlias.name),
-            Individual.valid_state,
-            Individual.valid_since,
-            Individual.valid_until,
+            Person.valid_state,
+            Person.valid_since,
+            Person.valid_until,
         )
-        .select_from(Individual)
-        .join(OrgAlias, Individual.affiliation_id == OrgAlias.observer_id)
-        .order_by(asc(Individual.name), asc(Individual.valid_since))
+        .select_from(Person)
+        .join(OrgAlias, Person.affiliation_id == OrgAlias.observer_id)
+        .order_by(asc(Person.name), asc(Person.valid_since))
     )
     q2 = (
         select(
-            Individual.name,
-            Individual.nickname,
+            Person.name,
+            Person.nickname,
             label("affiliation", None),
-            Individual.valid_state,
-            Individual.valid_since,
-            Individual.valid_until,
+            Person.valid_state,
+            Person.valid_since,
+            Person.valid_until,
         )
-        .where(Individual.affiliation_id == None)  # noqa: E711
-        .order_by(asc(Individual.name), asc(Individual.valid_since))
+        .where(Person.affiliation_id == None)  # noqa: E711
+        .order_by(asc(Person.name), asc(Person.valid_since))
     )
     # make the union at the result set point
     # because return q1.union(q2) yields an SQLOperational Error
@@ -215,7 +215,7 @@ def persons_lookup(session):
 
 
 def person_affiliation(session, name: str) -> Optional[str]:
-    q = select(Individual).where(Individual.name == name)
+    q = select(Person).where(Person.name == name)
     person = session.scalars(q).one_or_none()
     if not person or not person.affiliation:
         return None
@@ -224,7 +224,7 @@ def person_affiliation(session, name: str) -> Optional[str]:
 
 def person_delete(session, name: str) -> None:
     with session.begin():
-        q = select(Individual).where(Individual.name == name)
+        q = select(Person).where(Person.name == name)
         person = session.scalars(q).one_or_none()
         if person:
             session.delete(person)
@@ -242,7 +242,7 @@ def person_clone(
     with session.begin():
         qo = select(Organization.observer_id).where(Organization.name == affiliation)
         affiliation_id = session.scalars(qo).one_or_none()
-        person = Individual(
+        person = Person(
             name=name,
             nickname=nickname,
             affiliation_id=affiliation_id,
@@ -263,14 +263,14 @@ def person_update(
     valid_state: ValidState,
 ) -> None:
     with session.begin():
-        qp = select(Individual).where(Individual.name == name)
+        qp = select(Person).where(Person.name == name)
         qo = select(Organization).where(Organization.name == affiliation)
         org = session.scalars(qo).one()
         persons = session.scalars(qp).all()
         log.info("PERSONS %s", persons)
         # new person ?
         if len(persons) == 0:
-            person = Individual(
+            person = Person(
                 name=name,
                 nickname=nickname,
                 valid_since=valid_since,

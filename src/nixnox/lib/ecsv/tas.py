@@ -48,7 +48,7 @@ from ..dbase.model import (
     Photometer,
     Observer,
     Organization,
-    Individual,
+    Person,
     Observation,
     Location,
     Measurement,
@@ -176,10 +176,10 @@ class TASLoader:
         # we need to discreiminate between persons & organizations here
         # but for the time nbeing they are all persons
         name = self.table.meta["keywords"]["author"]
-        q = select(Individual).where(Individual.name == name)
+        q = select(Person).where(Person.name == name)
         individual = self.session.scalars(q).one_or_none()
         if not individual:
-            individual = Individual(
+            individual = Person(
             name=self.table.meta["keywords"]["author"],
             valid_since=datetime.now(timezone.utc).replace(microsecond=0),
             valid_until=datetime(year=2999, month=12, day=31, tzinfo=timezone.utc),
@@ -354,7 +354,7 @@ class TASImporter:
         result = self.session.scalars(q).one_or_none()
         if not result:
             if obs_type == ObserverType.PERSON:
-                result = Individual(
+                result = Person(
                     name=name,
                     nickname=over_dict["nickname"],
                     valid_since=datetime.strptime(over_dict["valid_since"], "%Y-%m-%dT%H:%M:%S"),

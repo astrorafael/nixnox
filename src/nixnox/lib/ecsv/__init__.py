@@ -31,7 +31,7 @@ from astropy.table import Table
 # -------------
 
 from .. import PhotometerModel
-from ..dbase.model import Observation, Individual
+from ..dbase.model import Observation, Person
 
 from .tas import TASLoader, TASExporter, TASImporter
 from .sqm import SQMLoader
@@ -56,7 +56,7 @@ def uploader(session: Session, file_obj: BinaryIO, log=log, **kwargs) -> Optiona
         photometer = subloader.photometer()
         location = subloader.location()
         observer = subloader.observer()
-        if isinstance(observer, Individual):
+        if isinstance(observer, Person):
             affiliation = subloader.affiliation()
             observer.affiliation = affiliation
             session.add(affiliation)
@@ -90,7 +90,7 @@ def database_import(session: Session, file_obj: BinaryIO) -> Optional[Observatio
         photometer = importer.photometer()
         location = importer.location()
         observer = importer.observer()
-        if isinstance(observer, Individual):
+        if isinstance(observer, Person):
             affiliation = importer.affiliation()
             observer.affiliation = affiliation
             session.add(affiliation)

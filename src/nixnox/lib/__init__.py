@@ -39,7 +39,7 @@ class Coordinates(StrEnum):
     MEDIAN = "Median of coordinates values"
 
 class ObserverType(StrEnum):
-    PERSON = "Individual"
+    PERSON = "Person"
     ORG = "Organization"
 
 class PhotometerModel(StrEnum):
