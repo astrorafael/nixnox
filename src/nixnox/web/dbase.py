@@ -194,7 +194,7 @@ def persons_lookup(session):
         select(
             Person.name,
             Person.nickname,
-            label("affiliation", OrgAlias.name),
+            label("affiliation", OrgAlias.org_name),
             Person.valid_state,
             Person.valid_since,
             Person.valid_until,
@@ -217,8 +217,9 @@ def persons_lookup(session):
     )
     # make the union at the result set point
     # because return q1.union(q2) yields an SQLOperational Error
-    # return session.execute(q1.union(q2)).all()
     return session.execute(q1).all() + session.execute(q2).all()
+    #return session.execute(q1.union(q2)).all()
+    
 
 
 def person_affiliation(session, name: str) -> Optional[str]:
@@ -226,7 +227,7 @@ def person_affiliation(session, name: str) -> Optional[str]:
     person = session.scalars(q).one_or_none()
     if not person or not person.affiliation:
         return None
-    return person.affiliation.name
+    return person.affiliation.org_name
 
 
 def person_delete(session, name: str) -> None:

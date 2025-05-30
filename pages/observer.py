@@ -282,7 +282,7 @@ def view_affiliation(
     c1, c2, c3 = st.columns(3)
     with c1:
         ancient = date(1940, 1, 1)
-        forever = date(2999, 12, 31)
+        forever = date(2099, 12, 31)
         since = st.date_input(
             "Since",
             value=form_data["valid_since"],

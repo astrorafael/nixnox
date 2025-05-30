@@ -182,7 +182,7 @@ class TASLoader:
             individual = Person(
             name=self.table.meta["keywords"]["author"],
             valid_since=datetime.now(timezone.utc).replace(microsecond=0),
-            valid_until=datetime(year=2999, month=12, day=31, tzinfo=timezone.utc),
+            valid_until=datetime(year=2099, month=12, day=31, tzinfo=timezone.utc),
             valid_state=ValidState.CURRENT,
         )
         return individual
