@@ -3,7 +3,7 @@
 # ------------------
 
 from collections import defaultdict
-from typing import Optional, Any, Tuple
+from typing import Optional, Any, Tuple, Annotated
 from datetime import datetime, date
 
 # ---------------------
@@ -14,7 +14,8 @@ import streamlit as st
 from streamlit.connections import SQLConnection
 from streamlit import logger
 
-from pydantic import BaseModel, ValidationError, EmailStr, HttpUrl
+from pydantic import BaseModel, ValidationError, constr, EmailStr, HttpUrl
+from pydantic.types import StringConstraints
 
 # -----------
 # own library
@@ -27,16 +28,18 @@ from nixnox.lib import ValidState
 # Pydantic Models
 # ---------------
 
-DEF_ORG_TEXT = "<Enter organization name here>"
-DEF_PERSON_TEXT = "<Enter your full name here>"
+LongNameStr = Annotated[str, StringConstraints(pattern=r"^[a-zA-Z 0-9_-]{8,255}")]
+ShortNameStr = Annotated[str, StringConstraints(pattern=r"^[a-zA-Z 0-9_-]{3,22}")]
 
+DEF_ORG_TEXT = "Enter organization name here"
+DEF_PERSON_TEXT = "Enter your full name here"
 
 class NameField(BaseModel):
-    name: str
+    name: LongNameStr
 
 
 class AcronymField(BaseModel):
-    org_acronym: Optional[str] = None
+    org_acronym: Optional[ShortNameStr] = None
 
 
 class WebField(BaseModel):
@@ -48,11 +51,11 @@ class EmailField(BaseModel):
 
 
 class NickField(BaseModel):
-    nickname: Optional[str] = None
+    nickname: Optional[ShortNameStr] = None
 
 
 class AffilField(BaseModel):
-    affiliation: Optional[str] = None
+    affiliation: Optional[LongNameStr] = None
 
 
 class ValidDateField(BaseModel):
@@ -308,7 +311,7 @@ def view_affiliation(
 def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
     with st.form("person_data_entry_form", clear_on_submit=True):
         st.header("👤 Person Data Entry")
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns((1,2))
         with c1:
             observer_id = st.number_input("Id (read only)", value=form_data["observer_id"], disabled=True)
         with c2:
@@ -341,6 +344,7 @@ def person_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
                 st.session_state["person"]["table"] = db.persons_lookup(session)
                 st.session_state["person"]["selected"] = None
                 st.session_state["person"]["delete_button"] = False
+                st.session_state["person"]["form"].update(person_default_form)
             st.rerun()
         elif not all_valid:
             st.error("Not Updated!")

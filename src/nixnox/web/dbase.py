@@ -191,10 +191,10 @@ def persons_lookup(session):
     OrgAlias = aliased(Organization)
     q1 = (
         select(
-            Person.observer_id,
+            Person.observer_id.label("id"),
             Person.name,
             Person.nickname,
-            label("affiliation", OrgAlias.org_name),
+            OrgAlias.org_name.label("affiliation"),
             Person.valid_state,
             Person.valid_since,
             Person.valid_until,
