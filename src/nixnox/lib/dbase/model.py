@@ -259,6 +259,8 @@ class Observer(Model):
 
 
 class Organization(Observer):
+    # Since this has no proper table, we can't declare an "org_id" primary key column on its own
+    # We have to reuse "observer_id"
     observer_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
