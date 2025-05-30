@@ -300,24 +300,24 @@ def orgs_names_lookup(session):
 
 def orgs_lookup(session):
     q = select(
-        Organization.name, Organization.acronym, Organization.website_url, Organization.email
+        Organization.name, Organization.org_acronym, Organization.org_website_url, Organization.org_email
     ).order_by(asc(Organization.name))
     return session.execute(q).all()
 
 
-def org_update(session, name: str, acronym: str, website_url: str, email: str) -> None:
+def org_update(session, name: str, org_acronym: str, org_website_url: str, org_email: str) -> None:
     with session.begin():
         q = select(Organization).where(Organization.name == name)
         organization = session.scalars(q).one_or_none()
         log.info("ORGANIZATION %s", organization)
         if organization:
-            organization.acronym = acronym
-            organization.website_url = website_url
-            organization.email = email
+            organization.org_acronym = org_acronym
+            organization.org_website_url = org_website_url
+            organization.org_email = org_email
             log.info("YA EXISTE Y LA MODIFICAMOS A %s", organization)
         else:
             organization = Organization(
-                name=name, acronym=acronym, website_url=website_url, email=email
+                name=name, org_acronym=org_acronym, org_website_url=org_website_url, org_email=org_email
             )
         session.add(organization)
 

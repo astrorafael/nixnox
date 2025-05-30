@@ -338,9 +338,9 @@ class TASImporter:
             affil = over_dict["affiliation"]
             result = Organization(
                     name=affil["name"],
-                    acronym=affil["acronym"],
-                    email=affil["acronym"],
-                    website_url=affil["website_url"],
+                    org_acronym=affil["org_acronym"],
+                    org_email=affil["org_acronym"],
+                    org_website_url=affil["org_website_url"],
                 )
         return result
 
@@ -364,9 +364,9 @@ class TASImporter:
             else:
                 result = Organization(
                     name=name,
-                    acronym=over_dict["acronym"],
-                    email=over_dict["acronym"],
-                    website_url=over_dict["website_url"],
+                    org_acronym=over_dict["org_acronym"],
+                    org_email=over_dict["org_acronym"],
+                    org_website_url=over_dict["org_website_url"],
                 )
         return result
             

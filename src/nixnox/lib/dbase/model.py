@@ -158,8 +158,8 @@ def observer_name(observer: dict) -> str:
         if observer["affiliation"] is not None:
             long_affil = observer["affiliation"]["name"]
             short_affil = (
-                observer["affiliation"]["acronym"]
-                if observer["affiliation"]["acronym"] is not None
+                observer["affiliation"]["org_acronym"]
+                if observer["affiliation"]["org_acronym"] is not None
                 else ""
             )
             affiliation = short_affil or long_affil
@@ -167,7 +167,7 @@ def observer_name(observer: dict) -> str:
         else:
             result = name
     else:
-        result = f"{name} ({observer['acronym']})" if observer["acronym"] else name
+        result = f"{name} ({observer['org_acronym']})" if observer["org_acronym"] else name
     return result
 
 
@@ -264,12 +264,12 @@ class Organization(Observer):
     )
     # Organization name
     name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
-    # Organization acronym
-    acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
+    # Organization org_acronym
+    org_acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
     # Person/Organization website URL
-    website_url: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
-    # Person/Organization contact email
-    email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
+    org_website_url: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
+    # Person/Organization contact org_email
+    org_email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
     # Version control attributes for Persons that change affiliations
 
     __mapper_args__ = {
@@ -279,9 +279,9 @@ class Organization(Observer):
     def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
         r = super().to_dict()
-        r["acronym"] = self.acronym
-        r["website_url"] = self.website_url
-        r["email"] = self.email
+        r["org_acronym"] = self.org_acronym
+        r["org_website_url"] = self.org_website_url
+        r["org_email"] = self.org_email
         return r
 
 

@@ -36,15 +36,15 @@ class NameField(BaseModel):
 
 
 class AcronymField(BaseModel):
-    acronym: Optional[str] = None
+    org_acronym: Optional[str] = None
 
 
 class WebField(BaseModel):
-    website_url: Optional[HttpUrl] = None
+    org_website_url: Optional[HttpUrl] = None
 
 
 class EmailField(BaseModel):
-    email: Optional[EmailStr] = None
+    org_email: Optional[EmailStr] = None
 
 
 class NickField(BaseModel):
@@ -72,9 +72,9 @@ conn: SQLConnection = st.connection("env:NX_ENV", type="sql")
 
 org_default_form = {
     "name": DEF_ORG_TEXT,
-    "acronym": None,
-    "website_url": None,
-    "email": None,
+    "org_acronym": None,
+    "org_website_url": None,
+    "org_email": None,
 }
 
 person_default_form = {
@@ -151,9 +151,9 @@ def on_org_selected() -> None:
         info = st.session_state["org"]["table"][row]
         new_form_data = {
             "name": info[0],
-            "acronym": info[1],
-            "website_url": info[2],
-            "email": info[3],
+            "org_acronym": info[1],
+            "org_website_url": info[2],
+            "org_email": info[3],
         }
         st.session_state["org"]["selected"] = info
         st.session_state["org"]["delete_button"] = True
@@ -349,24 +349,24 @@ def org_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
         except ValidationError:
             st.warning("⚠️ please, change name")
             name = None
-        acronym = st.text_input("Acronym", value=form_data["acronym"])
+        org_acronym = st.text_input("Acronym", value=form_data["org_acronym"])
         try:
-            acronym = AcronymField(acronym=acronym)
+            org_acronym = AcronymField(org_acronym=org_acronym)
         except ValidationError:
-            st.error("❌ acronym is not valid")
-            acronym = None
-        website_url = st.text_input("🌎 Web Site", value=form_data["website_url"])
+            st.error("❌ org_acronym is not valid")
+            org_acronym = None
+        org_website_url = st.text_input("🌎 Web Site", value=form_data["org_website_url"])
         try:
-            website_url = WebField(website_url=website_url)
+            org_website_url = WebField(org_website_url=org_website_url)
         except ValidationError:
             st.error("❌ URL format is not valid")
-            website_url = None
-        email = st.text_input("📧 Email", value=form_data["email"])
+            org_website_url = None
+        org_email = st.text_input("📧 Email", value=form_data["org_email"])
         try:
-            email = EmailField(email=email)
+            org_email = EmailField(org_email=org_email)
         except ValidationError:
-            st.error("❌ email format is not valid")
-            email = None
+            st.error("❌ org_email format is not valid")
+            org_email = None
         submitted = st.form_submit_button(
             "**Submit**",
             help="Submit Organization data to database",
@@ -374,11 +374,11 @@ def org_view_form(conn: SQLConnection, form_data: dict[str]) -> None:
             # on_click=on_org_form_submitted,
             use_container_width=False,
         )
-        all_valid = all(map(lambda x: x is not None, [name, acronym, website_url, email]))
+        all_valid = all(map(lambda x: x is not None, [name, org_acronym, org_website_url, org_email]))
         if submitted and all_valid:
             with conn.session as session:
                 db.org_update(
-                    session, name.name, acronym.acronym, str(website_url.website_url), email.email
+                    session, name.name, org_acronym.org_acronym, str(org_website_url.org_website_url), org_email.org_email
                 )
                 st.session_state["org"]["table"] = db.orgs_lookup(session)
                 st.session_state["org"]["selected"] = None
