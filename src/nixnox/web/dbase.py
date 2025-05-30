@@ -24,7 +24,7 @@ from streamlit.logger import get_logger
 # Local imports
 # -------------
 
-from ..lib import PhotometerModel, ValidState
+from ..lib import PhotometerModel, ValidState, ObserverType
 
 from ..lib.dbase.model import (
     Photometer,
@@ -51,14 +51,17 @@ def obs_nsummaries(session) -> int:
 
 
 def obs_summary_search(session, cond: dict = None):
-    """Generic Obsewrvation summary search with several constratints"""
+    """Generic Observation summary search with several constratints"""
+    
+    over_type = cond["search_by_observer_type"] or ObserverType.PERSON
+
     q = (
         select(
             Observation.timestamp_1.label("date"),
             Observation.identifier.label("tag"),
             Location.place,
             Photometer.name.label("photometer"),
-            Observer.name,
+            Person.name if over_type == ObserverType.PERSON else Organization.org_name,
         )
         .select_from(Measurement)
         .join(Observation, Measurement.obs_id == Observation.obs_id)
@@ -83,10 +86,14 @@ def obs_summary_search(session, cond: dict = None):
             )
         # Add Observer conditions if any
         if cond["search_by_observer_name"]:
-            q = q.where(
-                Observer.type == cond["search_by_observer_type"],
-                Observer.name.like("%" + cond["search_by_observer_name"] + "%"),
-            )
+            if cond["search_by_observer_type"] == ObserverType.Person:
+                q = q.where(
+                    Person.name.like("%" + cond["search_by_observer_name"] + "%"),
+                )
+            else:
+                q = q.where(
+                    Organization.org_name.like("%" + cond["search_by_observer_name"] + "%"),
+                )
         # Add Location conditions if any
         if cond["search_by_location_name"] and cond["search_by_location_scope"] == "Country":
             q = q.where(
@@ -240,7 +247,7 @@ def person_clone(
     valid_state: ValidState,
 ) -> None:
     with session.begin():
-        qo = select(Organization.observer_id).where(Organization.name == affiliation)
+        qo = select(Organization.observer_id).where(Organization.org_name == affiliation)
         affiliation_id = session.scalars(qo).one_or_none()
         person = Person(
             name=name,
@@ -264,7 +271,7 @@ def person_update(
 ) -> None:
     with session.begin():
         qp = select(Person).where(Person.name == name)
-        qo = select(Organization).where(Organization.name == affiliation)
+        qo = select(Organization).where(Organization.org_name == affiliation)
         org = session.scalars(qo).one()
         persons = session.scalars(qp).all()
         log.info("PERSONS %s", persons)
@@ -294,20 +301,20 @@ def person_update(
 
 
 def orgs_names_lookup(session):
-    q = select(Organization.name).order_by(asc(Organization.name))
+    q = select(Organization.org_name).order_by(asc(Organization.org_name))
     return session.scalars(q).all()
 
 
 def orgs_lookup(session):
     q = select(
-        Organization.name, Organization.org_acronym, Organization.org_website_url, Organization.org_email
-    ).order_by(asc(Organization.name))
+        Organization.org_name, Organization.org_acronym, Organization.org_website_url, Organization.org_email
+    ).order_by(asc(Organization.org_name))
     return session.execute(q).all()
 
 
-def org_update(session, name: str, org_acronym: str, org_website_url: str, org_email: str) -> None:
+def org_update(session, org_name: str, org_acronym: str, org_website_url: str, org_email: str) -> None:
     with session.begin():
-        q = select(Organization).where(Organization.name == name)
+        q = select(Organization).where(Organization.org_name == org_name)
         organization = session.scalars(q).one_or_none()
         log.info("ORGANIZATION %s", organization)
         if organization:
@@ -317,14 +324,14 @@ def org_update(session, name: str, org_acronym: str, org_website_url: str, org_e
             log.info("YA EXISTE Y LA MODIFICAMOS A %s", organization)
         else:
             organization = Organization(
-                name=name, org_acronym=org_acronym, org_website_url=org_website_url, org_email=org_email
+                org_name=org_name, org_acronym=org_acronym, org_website_url=org_website_url, org_email=org_email
             )
         session.add(organization)
 
 
 def org_delete(session, name: str) -> None:
     with session.begin():
-        q = select(Organization).where(Organization.name == name)
+        q = select(Organization).where(Organization.org_name == name)
         organization = session.scalars(q).one_or_none()
         if organization:
             session.delete(organization)

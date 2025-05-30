@@ -165,10 +165,10 @@ class TASLoader:
         affiliation = self.table.meta["keywords"].get("association")
         if not affiliation:
             return None
-        q = select(Organization).where(Organization.name == affiliation)
+        q = select(Organization).where(Organization.org_name == affiliation)
         organization = self.session.scalars(q).one_or_none()
         if not organization:
-            organization = Organization(name=affiliation)
+            organization = Organization(org_name=affiliation)
         return organization
 
 
@@ -337,7 +337,7 @@ class TASImporter:
         if obs_type == ObserverType.PERSON and over_dict["affiliation"]:
             affil = over_dict["affiliation"]
             result = Organization(
-                    name=affil["name"],
+                    org_name=affil["org_name"],
                     org_acronym=affil["org_acronym"],
                     org_email=affil["org_acronym"],
                     org_website_url=affil["org_website_url"],
@@ -350,20 +350,23 @@ class TASImporter:
         over_dict = self.table.meta["Observer"]
         name = over_dict["name"]
         obs_type = ObserverType(over_dict["type"])
-        q = select(Observer).where(Observer.type == obs_type, Observer.name == name)
-        result = self.session.scalars(q).one_or_none()
-        if not result:
-            if obs_type == ObserverType.PERSON:
+        if obs_type == ObserverType.PERSON:
+            q = select(Person).where(Person.name == name)
+            result = self.session.scalars(q).one_or_none()
+            if not result:
                 result = Person(
                     name=name,
                     nickname=over_dict["nickname"],
                     valid_since=datetime.strptime(over_dict["valid_since"], "%Y-%m-%dT%H:%M:%S"),
                     valid_until=datetime.strptime(over_dict["valid_until"], "%Y-%m-%dT%H:%M:%S"),
                     valid_state=ValidState(over_dict["valid_state"]),
-                )
-            else:
+                    )
+        else:
+            q = select(Organization).where(Organization.org_name == name)
+            result = self.session.scalars(q).one_or_none()
+            if not result:
                 result = Organization(
-                    name=name,
+                    org_name=name,
                     org_acronym=over_dict["org_acronym"],
                     org_email=over_dict["org_acronym"],
                     org_website_url=over_dict["org_website_url"],

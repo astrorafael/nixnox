@@ -196,7 +196,7 @@ def cli_populate_location(session: Session, args: Namespace) -> None:
 
 def cli_populate_observer(session: Session, args: Namespace) -> None:
     log.info("Generating Default Observer Location value")
-    observer = Organization(observer_id=-1, name="Unknown")
+    observer = Organization(observer_id=-1, org_name="Unknown")
     with session.begin():
         session.add(observer)
 

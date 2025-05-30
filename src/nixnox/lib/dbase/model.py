@@ -153,10 +153,11 @@ PopulationCentreType: Enum = Enum(
 
 def observer_name(observer: dict) -> str:
     """Handy formatting tool to get a good observer name"""
-    name = observer["name"]
+
     if ObserverType(observer["type"]) == ObserverType.PERSON:
+        name = observer["name"]
         if observer["affiliation"] is not None:
-            long_affil = observer["affiliation"]["name"]
+            long_affil = observer["affiliation"]["org_name"]
             short_affil = (
                 observer["affiliation"]["org_acronym"]
                 if observer["affiliation"]["org_acronym"] is not None
@@ -167,6 +168,7 @@ def observer_name(observer: dict) -> str:
         else:
             result = name
     else:
+        name = observer["org_name"]
         result = f"{name} ({observer['org_acronym']})" if observer["org_acronym"] else name
     return result
 
@@ -228,8 +230,6 @@ class Observer(Model):
     observer_id: Mapped[int] = mapped_column(primary_key=True)
     # Either Indiviudal or Organization
     type: Mapped[ObserverType] = mapped_column(ObserverCol, nullable=False)
-    # Person/Organization full name
-    name: Mapped[str] = mapped_column(String(255))
 
     # We can't set an UniqueConstraint on name, valid_since because this applies
     # only to Persons
@@ -246,44 +246,9 @@ class Observer(Model):
 
     def to_dict(self) -> OrderedDict:
         """To be written as Astropy's table metadata"""
-        r = OrderedDict(
-            (key, self.__dict__.get(key))
-            for key in (
-                "type",
-                "name",
-            )
-        )
+        r = OrderedDict((key, self.__dict__.get(key)) for key in ("type",))
         # Patch enum & date values
         r["type"] = self.type.value
-        return r
-
-
-class Organization(Observer):
-    # Since this has no proper table, we can't declare an "org_id" primary key column on its own
-    # We have to reuse "observer_id"
-    observer_id: Mapped[int] = mapped_column(
-        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
-    )
-    # Organization name
-    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
-    # Organization org_acronym
-    org_acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
-    # Person/Organization website URL
-    org_website_url: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
-    # Person/Organization contact org_email
-    org_email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
-    # Version control attributes for Persons that change affiliations
-
-    __mapper_args__ = {
-        "polymorphic_identity": ObserverType.ORG,
-    }
-
-    def to_dict(self) -> OrderedDict:
-        """To be written as Astropy's table metadata"""
-        r = super().to_dict()
-        r["org_acronym"] = self.org_acronym
-        r["org_website_url"] = self.org_website_url
-        r["org_email"] = self.org_email
         return r
 
 
@@ -292,20 +257,18 @@ class Person(Observer):
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
     # Person full name
-    name: Mapped[str] = mapped_column(String(255), use_existing_column=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
     # Observer nickname for individuals, optional as it shares data with Organozation
-    nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)
+    nickname: Mapped[str] = mapped_column(String(12), nullable=True)
     # Observer (individual) affiliation to an organization name
     affiliation_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), nullable=True, use_existing_column=True
     )
 
     # They are optional because they share table with Organization
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
-    valid_state: Mapped[ValidStateType] = mapped_column(
-        ValidStateType, nullable=True, use_existing_column=True
-    )
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": ObserverType.PERSON,
@@ -321,6 +284,7 @@ class Person(Observer):
 
     def to_dict(self) -> OrderedDict:
         r = super().to_dict()
+        r["name"] = self.name
         r["nickname"] = self.nickname
         r["valid_since"] = self.valid_since.isoformat()
         r["valid_until"] = self.valid_until.isoformat()
@@ -329,6 +293,36 @@ class Person(Observer):
             r["affiliation"] = self.affiliation.to_dict()
         else:
             r["affiliation"] = None
+        return r
+
+
+class Organization(Observer):
+    # Since this has no proper table, we can't declare an "org_id" primary key column on its own
+    # We have to reuse "observer_id"
+    observer_id: Mapped[int] = mapped_column(
+        ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
+    )
+    # Organization name
+    org_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    # Organization org_acronym
+    org_acronym: Mapped[str] = mapped_column(String(16), nullable=True)
+    # Person/Organization website URL
+    org_website_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    # Person/Organization contact org_email
+    org_email: Mapped[str] = mapped_column(String(64), nullable=True)
+    # Version control attributes for Persons that change affiliations
+
+    __mapper_args__ = {
+        "polymorphic_identity": ObserverType.ORG,
+    }
+
+    def to_dict(self) -> OrderedDict:
+        """To be written as Astropy's table metadata"""
+        r = super().to_dict()
+        r["org_name"] = self.org_name
+        r["org_acronym"] = self.org_acronym
+        r["org_website_url"] = self.org_website_url
+        r["org_email"] = self.org_email
         return r
 
 
