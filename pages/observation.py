@@ -2,9 +2,6 @@
 # Standard libraries
 # ------------------
 
-from typing import Any
-from datetime import date
-from collections import defaultdict
 
 # ---------------------
 # Third party libraries
@@ -40,6 +37,7 @@ def get_measurements(_session, obs_tag: str):
 
 
 def obs_init(conn: SQLConnection) -> str | None:
+    st.title("Observation details")
     selected = st.session_state["obs_summ"]["selected"]
     if not selected:
         st.warning("### Please, select an observation in the home page", icon="⚠️")
@@ -49,7 +47,7 @@ def obs_init(conn: SQLConnection) -> str | None:
 def obs_view_details(conn: SQLConnection, obs_tag: str) -> None:
     with conn.session as session:
         measurements = get_measurements(session, obs_tag)
-        observation, observer, location, photometer = get_observation_details(session, obs_tag)
+        observation, observer, location, photometer = db.obs_details(session, obs_tag)
         c1, c2 = st.columns(2)
         with c1:
             st.write("### Observer")

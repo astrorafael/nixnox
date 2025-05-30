@@ -178,7 +178,7 @@ def obs_view_form() -> None:
 
 
 def obs_view_header(conn: SQLConnection) -> None:
-    st.title("**Available observations**")
+    st.title("Available observations")
     st.write(f"There are {obs_nsummaries(conn)} stored observations available.")
 
 

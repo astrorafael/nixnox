@@ -8,7 +8,13 @@ from threading import RLock
 # ---------
 # STREAMLIT
 # ---------
+
 import streamlit as st
+import pandas as pd
+import streamlit as st
+from streamlit.connections import SQLConnection
+from streamlit import logger
+
 
 # -------------------
 # Third party library
@@ -20,6 +26,14 @@ import nixnox.web.dbase as db
 import nixnox.web.mpl as mpl
 from nixnox.web.streamlit import ttl
 
+
+def obs_init(conn: SQLConnection) -> str | None:
+    selected = st.session_state["obs_summ"]["selected"]
+    if not selected:
+        st.warning("### Please, select an observation in the home page", icon="⚠️")
+    result = st.session_state["obs_summ"]["selected"][1] if selected else None
+    return result
+
 # ============
 # PAGE OBJECTS
 # ============
@@ -30,6 +44,8 @@ from nixnox.web.streamlit import ttl
 #    This Matplotlib bug is more prominent when you deploy and share your apps 
 #    because you're more likely to get concurrent users then.""""
 
+
+log = logger.get_logger(__name__)
 conn = st.connection("env:NX_ENV", type="sql")
 
 @st.cache_data(ttl=ttl())
@@ -57,17 +73,20 @@ def plot(
         photometer=_photometer,
     )
 
+def plot_init(conn: SQLConnection) -> str | None:
+    st.title("Night Sky Brightness Plot")
+    selected = st.session_state["obs_summ"]["selected"]
+    if not selected:
+        st.warning("### Please, select an observation in the home page", icon="⚠️")
+    result = st.session_state["obs_summ"]["selected"][1] if selected else None
+    return result
 
-st.write("## Night Sky Brightness Plot")
-if "obs_tag" not in st.session_state:
-    st.warning("### Please, select an observation in the home page", icon="⚠️")
-else:
-
-    obs_tag = st.session_state.obs_tag
+def plot_view(conn: SQLConnection, obs_tag: str) -> None:
     with conn.session as session:
-        observation, observer, location, photometer = get_observation_details(session, obs_tag)
-        measurements = get_measurements(session, st.session_state.obs_tag)
+        observation, observer, location, photometer = db.obs_details(session, obs_tag)
+        measurements = get_measurements(session, obs_tag)
         measurements = Table([m.to_dict() for m in measurements])
+        st.write(measurements)
         with RLock():
             figure = plot(
                 obs_tag,
@@ -89,3 +108,8 @@ else:
                 icon=":material/download:",
             )
             st.pyplot(figure)
+
+
+obs_tag = plot_init(conn)
+if obs_tag:
+    plot_view(conn, obs_tag)
