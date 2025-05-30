@@ -12,7 +12,7 @@ from datetime import datetime, date
 
 import streamlit as st
 from streamlit.connections import SQLConnection
-from streamlit.logger import get_logger
+from streamlit import logger
 
 from pydantic import BaseModel, ValidationError, EmailStr, HttpUrl
 
@@ -67,7 +67,9 @@ class ValidStateField(BaseModel):
 # Global variables
 # ----------------
 
-log = get_logger(__name__)
+log = logger.get_logger(__name__)
+log.info("ENTERING PAGE")
+
 conn: SQLConnection = st.connection("env:NX_ENV", type="sql")
 
 org_default_form = {
@@ -100,7 +102,6 @@ def person_init(conn: SQLConnection) -> None:
             st.session_state["person"]["table"] = db.persons_lookup(session)
             st.session_state["person"]["selected"] = None
             st.session_state["person"]["form"].update(person_default_form)
-            st.session_state["person"]["form_validated"] = False
             st.session_state["person"]["delete_button"] = False
             st.session_state["person"]["clone_button"] = False
 
@@ -112,7 +113,6 @@ def org_init(conn: SQLConnection) -> None:
             st.session_state["org"]["table"] = db.orgs_lookup(session)
             st.session_state["org"]["selected"] = None
             st.session_state["org"]["form"].update(org_default_form)
-            st.session_state["org"]["form_validated"] = False
             st.session_state["org"]["delete_button"] = False
 
 

@@ -227,7 +227,7 @@ class Time(Model):
 class Observer(Model):
     __tablename__ = "observer_t"
 
-    observer_id: Mapped[int] = mapped_column(primary_key=True)
+    observer_id: Mapped[int] = mapped_column(primary_key=True, use_existing_column=True)
     # Either Indiviudal or Organization
     type: Mapped[ObserverType] = mapped_column(ObserverCol, nullable=False)
 
@@ -257,18 +257,20 @@ class Person(Observer):
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
     # Person full name
-    name: Mapped[str] = mapped_column(String(255), nullable=True)
-    # Observer nickname for individuals, optional as it shares data with Organozation
-    nickname: Mapped[str] = mapped_column(String(12), nullable=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
+    # Observer nickname for individuals, optional as it shares data with Organization
+    nickname: Mapped[str] = mapped_column(String(12), nullable=True, use_existing_column=True)
     # Observer (individual) affiliation to an organization name
     affiliation_id: Mapped[int] = mapped_column(
         ForeignKey("observer_t.observer_id"), nullable=True, use_existing_column=True
     )
 
     # They are optional because they share table with Organization
-    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    valid_state: Mapped[ValidStateType] = mapped_column(ValidStateType, nullable=True)
+    valid_since: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True, use_existing_column=True)
+    valid_state: Mapped[ValidStateType] = mapped_column(
+        ValidStateType, nullable=True, use_existing_column=True
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": ObserverType.PERSON,
@@ -303,13 +305,15 @@ class Organization(Observer):
         ForeignKey("observer_t.observer_id"), primary_key=True, use_existing_column=True
     )
     # Organization name
-    org_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    org_name: Mapped[str] = mapped_column(String(255), nullable=True, use_existing_column=True)
     # Organization org_acronym
-    org_acronym: Mapped[str] = mapped_column(String(16), nullable=True)
+    org_acronym: Mapped[str] = mapped_column(String(16), nullable=True, use_existing_column=True)
     # Person/Organization website URL
-    org_website_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    org_website_url: Mapped[str] = mapped_column(
+        String(255), nullable=True, use_existing_column=True
+    )
     # Person/Organization contact org_email
-    org_email: Mapped[str] = mapped_column(String(64), nullable=True)
+    org_email: Mapped[str] = mapped_column(String(64), nullable=True, use_existing_column=True)
     # Version control attributes for Persons that change affiliations
 
     __mapper_args__ = {

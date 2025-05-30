@@ -1,19 +1,23 @@
 # ------------------
 # Standard libraries
 # ------------------
-from typing import Callable
+
+from typing import Any
 from datetime import date
+from collections import defaultdict
 
 # ---------------------
 # Third party libraries
 # ---------------------
 
 import streamlit as st
-from streamlit.logger import get_logger
+from streamlit.connections import SQLConnection
+from streamlit import logger
 
 # -------------
 # Own libraries
 # -------------
+
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
 from nixnox.lib import ObserverType, PhotometerModel
@@ -23,8 +27,15 @@ from nixnox.lib import ObserverType, PhotometerModel
 # Global variables
 # ----------------
 
-log = get_logger(__name__)
+log = logger.get_logger(__name__)
 
+obs_default_form = {
+    "date": None,
+    "tag": None,
+    "place": None,
+    "photometer": None,
+    "observer": None,
+}
 
 # ---------------------
 # Convenience functions
@@ -32,33 +43,43 @@ log = get_logger(__name__)
 
 
 @st.cache_data(ttl=ttl())
-def obs_summary(_conn, conditions):
+def obs_summary(_conn: SQLConnection, conditions: dict[str, Any]):
     with _conn.session as session:
         return db.obs_summary_search(session, conditions)
 
 
 @st.cache_data(ttl=ttl())
-def obs_nsummaries(_conn):
+def obs_nsummaries(_conn: SQLConnection):
     with _conn.session as session:
         return db.obs_nsummaries(session)
 
 
 @st.cache_data(ttl=ttl())
-def get_observation_as_ecsv(_conn, obs_tag: str) -> str:
+def get_observation_as_ecsv(_conn: SQLConnection, obs_tag: str) -> str:
     with _conn.session as session:
         return db.obs_export(session, obs_tag)
 
 
+
+def obs_init(conn: SQLConnection) -> None:
+    if "summary" not in st.session_state:
+        st.session_state["summary"] = defaultdict(dict)
+        st.session_state["summary"]["table"] = obs_summary(conn, None)
+        st.session_state["summary"]["selected"] = None
+        st.session_state["summary"]["form"].update(obs_default_form)
+     
+
+
 def on_selected_obs() -> None:
-    if st.session_state.ObservationDF.selection.rows:
-        log.debug(
-            "st.session_state.ObservationDF.selection.rows = %s",
-            st.session_state.ObservationDF.selection.rows,
-        )
-        row = st.session_state.ObservationDF.selection.rows[0]
-        log.debug("st.session_state.result_table[row] = %s", st.session_state.result_table[row])
-        # obs_tag is the seccnd item in the row
-        st.session_state.obs_tag = st.session_state.result_table[row][1]
+    if st.session_state.ObservationDataFrame.selection.rows:
+        # Clicked one row
+        row = st.session_state.ObservationDataFrame.selection.rows[0]
+        # Get the whole row
+        info = st.session_state["summary"]["table"][row]
+        st.session_state["summary"]["selected"] = info
+    else:
+        st.session_state["summary"]["selected"] = None
+
 
 
 def on_form_submit() -> None:
@@ -77,7 +98,7 @@ def on_form_submit() -> None:
         st.session_state.result_table = result_set
 
 
-def view_form(on_submit: Callable) -> None:
+def obs_view_form() -> None:
     with st.form("Search", clear_on_submit=True):
         st.write("## Observations finder")
         st.slider("Max. number of results", value=10, min_value=1, max_value=100, key="search_limit")
@@ -159,32 +180,24 @@ def view_form(on_submit: Callable) -> None:
             icon=":material/search:",
             type="primary",
             use_container_width=False,
-            on_click=on_submit,
+            #on_click=on_submit,
         )
 
 
-def view_header(conn) -> None:
+def obs_view_header(conn: SQLConnection) -> None:
     st.title("**Available observations**")
     st.write(f"There are {obs_nsummaries(conn)} stored observations available.")
-    if "result_table" not in st.session_state:
-        st.write("Displaying a default view of what is available.")
-        st.session_state.result_table = obs_summary(conn, None)
-    else:
-        table = st.session_state.result_table
-        N = st.session_state.get("search_limit",10)
-        st.write(f"Search displaying {len(table)}/{N}.")
 
-def view_results(resultset):
-    #st.write(f"Up to {limit} observations are displayed:")
+def obs_view_table(conn: SQLConnection) -> None:
     st.dataframe(
-        st.session_state.result_table,
-        key="ObservationDF",
+        st.session_state["summary"]["table"],
+        key="ObservationDataFrame",
         hide_index=True,
         on_select=on_selected_obs,
         selection_mode="single-row",
     )
-    if "obs_tag" in st.session_state:
-        obs_tag = st.session_state.obs_tag
+    if st.session_state["summary"]["selected"]:
+        obs_tag = st.session_state["summary"]["selected"][1]
         ecsv = get_observation_as_ecsv(conn, obs_tag)
         st.download_button(
             label=f"Download ECSV file: *{obs_tag}*",
@@ -200,6 +213,7 @@ def view_results(resultset):
 # ----------------------
 
 conn = st.connection("env:NX_ENV", type="sql")
-view_header(conn)
-view_results(resultset=st.session_state.result_table)
-view_form(on_submit=on_form_submit)
+obs_init(conn)
+obs_view_header(conn)
+obs_view_table(conn)
+obs_view_form()

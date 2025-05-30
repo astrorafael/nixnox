@@ -52,27 +52,25 @@ def obs_nsummaries(session) -> int:
 
 def obs_summary_search(session, cond: dict = None):
     """Generic Observation summary search with several constratints"""
-    
-    over_type = cond["search_by_observer_type"] or ObserverType.PERSON
-
+    cond = cond or dict()
+    over_type = cond.get("search_by_observer_type") or ObserverType.PERSON
+    limit = cond.get("search_limit", 10)
     q = (
         select(
             Observation.timestamp_1.label("date"),
             Observation.identifier.label("tag"),
             Location.place,
             Photometer.name.label("photometer"),
-            Person.name if over_type == ObserverType.PERSON else Organization.org_name,
+            label("observer", Person.name if over_type == ObserverType.PERSON else Organization.org_name),
         )
         .select_from(Measurement)
         .join(Observation, Measurement.obs_id == Observation.obs_id)
-        .join(Location, Measurement.observer_id == Location.location_id)
+        .join(Location, Measurement.location_id == Location.location_id)
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
     )
     log.info("CONDITIONS DICT = %s", cond)
-    if cond is None:
-        limit = 10
-    else:
+    if len(cond) != 0:  
         limit = cond["search_limit"]
         # Always add the date conditions
         start_date_id = int(cond["search_date_range"][0].strftime("%Y%m%d"))
@@ -134,6 +132,7 @@ def obs_summary_search(session, cond: dict = None):
         .order_by(desc(Measurement.date_id), desc(Measurement.time_id))
         .limit(limit)
     )
+    log.info("QUERY = %s",str(q))
     return session.execute(q).all()
 
 
