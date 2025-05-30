@@ -34,7 +34,7 @@ from .. import PhotometerModel
 from ..dbase.model import Observation, Person
 
 from .tas import TASLoader, TASExporter, TASImporter
-from .sqm import SQMLoader
+#from .sqm import SQMLoader
 
 # get the root logger
 log = logging.getLogger(__name__.split(".")[-1])
