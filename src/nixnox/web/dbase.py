@@ -141,7 +141,7 @@ def obs_details(session, obs_tag: str):
         select(Observation, Observer, Location, Photometer)
         .select_from(Measurement)
         .join(Observation, Measurement.obs_id == Observation.obs_id)
-        .join(Location, Measurement.observer_id == Location.location_id)
+        .join(Location, Measurement.location_id == Location.location_id)
         .join(Observer, Measurement.observer_id == Observer.observer_id)
         .join(Photometer, Measurement.phot_id == Photometer.phot_id)
         .where(Observation.identifier == obs_tag)

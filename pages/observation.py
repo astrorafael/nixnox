@@ -1,19 +1,24 @@
-# ----------------
-# Standard library
-# ----------------
+# ------------------
+# Standard libraries
+# ------------------
 
-import os
+from typing import Any
+from datetime import date
+from collections import defaultdict
 
-# ---------
-# STREAMLIT
-# ---------
-import streamlit as st
-
-# -------------------
-# Third party library
-# -------------------
+# ---------------------
+# Third party libraries
+# ---------------------
 
 import pandas as pd
+import streamlit as st
+from streamlit.connections import SQLConnection
+from streamlit import logger
+
+# -------------
+# Own libraries
+# --------------
+
 import nixnox.web.dbase as db
 from nixnox.web.streamlit import ttl
 
@@ -21,10 +26,10 @@ from nixnox.web.streamlit import ttl
 # PAGE OBJECTS
 # ============
 
+log = logger.get_logger(__name__)
 conn = st.connection("env:NX_ENV", type="sql")
 
 
-@st.cache_data(ttl=ttl())
 def get_observation_details(_session, obs_tag: str):
     return db.obs_details(_session, obs_tag)
 
@@ -34,11 +39,14 @@ def get_measurements(_session, obs_tag: str):
         return db.obs_measurements(_session, obs_tag)
 
 
-st.write("## Observation Details")
-if "obs_tag" not in st.session_state:
-    st.warning("### Please, select an observation in the home page", icon="⚠️")
-else:
-    obs_tag = st.session_state.obs_tag
+def obs_init(conn: SQLConnection) -> str | None:
+    selected = st.session_state["obs_summ"]["selected"]
+    if not selected:
+        st.warning("### Please, select an observation in the home page", icon="⚠️")
+    result = st.session_state["obs_summ"]["selected"][1] if selected else None
+    return result
+
+def obs_view_details(conn: SQLConnection, obs_tag: str) -> None:
     with conn.session as session:
         measurements = get_measurements(session, obs_tag)
         observation, observer, location, photometer = get_observation_details(session, obs_tag)
@@ -79,3 +87,7 @@ else:
             )
         st.write("## Measurements")
         st.dataframe([m.to_dict() for m in measurements])
+
+obs_tag = obs_init(conn)
+if obs_tag:
+    obs_view_details(conn, obs_tag)

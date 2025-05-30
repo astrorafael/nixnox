@@ -61,11 +61,11 @@ def get_observation_as_ecsv(_conn: SQLConnection, obs_tag: str) -> str:
 
 
 def obs_init(conn: SQLConnection) -> None:
-    if "summary" not in st.session_state:
-        st.session_state["summary"] = defaultdict(dict)
-        st.session_state["summary"]["table"] = obs_summary(conn, None)
-        st.session_state["summary"]["selected"] = None
-        st.session_state["summary"]["form"].update(obs_default_form)
+    if "obs_summ" not in st.session_state:
+        st.session_state["obs_summ"] = defaultdict(dict)
+        st.session_state["obs_summ"]["table"] = obs_summary(conn, None)
+        st.session_state["obs_summ"]["selected"] = None
+        st.session_state["obs_summ"]["form"].update(obs_default_form)
 
 
 def on_selected_obs() -> None:
@@ -73,10 +73,10 @@ def on_selected_obs() -> None:
         # Clicked one row
         row = st.session_state.ObservationDataFrame.selection.rows[0]
         # Get the whole row
-        info = st.session_state["summary"]["table"][row]
-        st.session_state["summary"]["selected"] = info
+        info = st.session_state["obs_summ"]["table"][row]
+        st.session_state["obs_summ"]["selected"] = info
     else:
-        st.session_state["summary"]["selected"] = None
+        st.session_state["obs_summ"]["selected"] = None
 
 
 def on_obs_form_submit() -> None:
@@ -86,8 +86,8 @@ def on_obs_form_submit() -> None:
     if conditions:
         conditions["search_by_phot_model"] = PhotometerModel(conditions["search_by_phot_model"])
         conditions["search_by_observer_type"] = ObserverType(conditions["search_by_observer_type"])
-        st.session_state["summary"]["table"] = obs_summary(conn, conditions)
-        st.session_state["summary"]["selected"] = None
+        st.session_state["obs_summ"]["table"] = obs_summary(conn, conditions)
+        st.session_state["obs_summ"]["selected"] = None
 
 def obs_view_form() -> None:
     with st.form("Search", clear_on_submit=True):
@@ -185,14 +185,14 @@ def obs_view_header(conn: SQLConnection) -> None:
 def obs_view_table(conn: SQLConnection) -> None:
     st.header("Search results")
     st.dataframe(
-        st.session_state["summary"]["table"],
+        st.session_state["obs_summ"]["table"],
         key="ObservationDataFrame",
         hide_index=True,
         on_select=on_selected_obs,
         selection_mode="single-row",
     )
-    if st.session_state["summary"]["selected"]:
-        obs_tag = st.session_state["summary"]["selected"][1]
+    if st.session_state["obs_summ"]["selected"]:
+        obs_tag = st.session_state["obs_summ"]["selected"][1]
         ecsv = get_observation_as_ecsv(conn, obs_tag)
         st.download_button(
             label=f"Download ECSV file: *{obs_tag}*",
