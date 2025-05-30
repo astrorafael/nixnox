@@ -71,7 +71,7 @@ ObserverCol: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 PhotometerModelCol: Enum = Enum(
@@ -80,7 +80,7 @@ PhotometerModelCol: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.upper() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 
@@ -90,7 +90,7 @@ SensorType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.upper() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 ValidStateType: Enum = Enum(
@@ -99,7 +99,7 @@ ValidStateType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 TemperatureType: Enum = Enum(
@@ -108,7 +108,7 @@ TemperatureType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 HumidityType: Enum = Enum(
@@ -117,7 +117,7 @@ HumidityType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 TimestampType: Enum = Enum(
@@ -126,7 +126,7 @@ TimestampType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 CoordinatesType: Enum = Enum(
@@ -135,7 +135,7 @@ CoordinatesType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 
 PopulationCentreType: Enum = Enum(
@@ -144,7 +144,7 @@ PopulationCentreType: Enum = Enum(
     create_constraint=False,
     metadata=Model.metadata,
     validate_strings=True,
-    values_callable=lambda x: [e.value.title() for e in x],
+    values_callable=lambda x: [e.name for e in x],
 )
 # ------------------
 # Auxiliar functions
