@@ -23,7 +23,7 @@ pg = st.navigation(
                 icon=":material/list:",
             ),
             st.Page(
-                os.path.join("pages", "observation.py"),
+                os.path.join("pages", "obsdetails.py"),
                 title="Observation details",
                 icon=":material/zoom_in:",
             ),
@@ -40,8 +40,23 @@ pg = st.navigation(
         ],
         "Administration": [
             st.Page(
-                os.path.join("pages", "observer.py"),
+                os.path.join("pages", "adm", "observer.py"),
                 title="Edit observer",
+                icon=":material/edit:",
+            ),
+            st.Page(
+                os.path.join("pages", "adm", "observation.py"),
+                title="Edit observation",
+                icon=":material/edit:",
+            ),
+            st.Page(
+                os.path.join("pages", "adm", "location.py"),
+                title="Edit location",
+                icon=":material/edit:",
+            ),
+            st.Page(
+                os.path.join("pages", "adm", "photometer.py"),
+                title="Edit photometer",
                 icon=":material/edit:",
             ),
         ],
