@@ -18,8 +18,7 @@ import nixnox.lib.ecsv as nx
 
 log = streamlit.logger.get_logger(__name__)
 
-# Database connection
-conn = st.connection("env:NX_ENV", type="sql")
+
 
 
 def view_upload(conn: SQLConnection):
