@@ -96,13 +96,13 @@ def interpolate(
     return np.radians(azi_grid), zen_grid, interpolated_zval
 
 
-def colormap() -> LinearSegmentedColormap:
+def nixnox_cmap(split_level: int = 192) -> LinearSegmentedColormap:
     """make a 256 point combined colormap from reversed viridis and YlOrRd"""
-    NC1 = 192
-    colors2 = plt.cm.viridis_r(np.linspace(0, 1, NC1))
-    colors1 = plt.cm.YlOrRd_r(np.linspace(0, 1, 256 - NC1))
+    assert 0 < split_level < 256
+    colors2 = plt.cm.viridis_r(np.linspace(0, 1, split_level))
+    colors1 = plt.cm.YlOrRd_r(np.linspace(0, 1, 256 - split_level))
     colors = np.vstack((colors1, colors2))
-    return mcolors.LinearSegmentedColormap.from_list("my_colormap", colors)
+    return mcolors.LinearSegmentedColormap.from_list("nixnox_cmap", colors)
 
 
 def plot_add_metadata(
@@ -138,7 +138,7 @@ def plot_non_interpolated(
     ax.set_xticks(np.deg2rad([e.value for e in Azimuth]))
     ax.set_xticklabels([e.name for e in Azimuth], fontdict={"fontsize": 14})
     ax.tick_params(pad=1.2)
-    cmap = colormap()
+    cmap = nixnox_cmap()
     cax = ax.scatter(
         np.radians(azimuths),
         zenitals,
@@ -176,7 +176,7 @@ def plot_interpolated(
     ax.set_xticks(np.deg2rad([e.value for e in Azimuth]))
     ax.set_xticklabels([e.name for e in Azimuth], fontdict={"fontsize": 14})
     ax.tick_params(pad=1.2)
-    cmap = colormap()
+    cmap = nixnox_cmap()
     # Plot the TAS data as tiny red dots for reference
     ax.scatter(np.radians(azimuths), zenitals, c="red", zorder=2, s=8)
     azi_grid, zen_grid, interp_mag = interpolate(azimuths, zenitals, zvalues=magnitudes)
